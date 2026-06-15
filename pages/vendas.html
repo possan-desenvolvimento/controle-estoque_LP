@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Vendas | EstoquePro</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/vendas.css">
+</head>
+<body>
+    <!-- Botão menu hambúrguer (mobile) -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    
+    <!-- Menu lateral -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">📦 LP Automações</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="clientes.html" class="nav-item">
+                <span class="nav-icon">👥</span>
+                <span>Clientes</span>
+            </a>
+            <a href="estoque.html" class="nav-item">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
+            </a>
+            <a href="financeiro.html" class="nav-item">
+                <span class="nav-icon">💰</span>
+                <span>Financeiro</span>
+            </a>
+            <a href="vendas.html" class="nav-item active">
+                <span class="nav-icon">🛒</span>
+                <span>Vendas</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-avatar">👤</span>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Carregando...</span>
+                    <span class="user-email" id="userEmail">carregando@email.com</span>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+    </aside>
+    
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+        <div class="page-container">
+            <!-- Cabeçalho -->
+            <div class="page-header">
+                <div class="header-left">
+                    <h1 class="page-title">🛒 PDV - Ponto de Venda</h1>
+                    <p class="page-subtitle">Registre vendas, escaneie produtos e finalize pedidos</p>
+                </div>
+                <button class="btn-outline" id="novaVendaBtn">
+                    🔄 Nova Venda
+                </button>
+            </div>
+
+            <!-- Layout principal: Carrinho + Produtos -->
+            <div class="vendas-layout">
+                <!-- COLUDA ESQUERDA: CARRINHO -->
+                <div class="carrinho-coluna">
+                    <div class="card carrinho-card">
+                        <div class="card-header">
+                            <h3>🛍️ Carrinho de Vendas</h3>
+                            <span class="itens-count" id="itensCount">0 itens</span>
+                        </div>
+                        
+                        <!-- Lista do carrinho -->
+                        <div class="carrinho-lista" id="carrinhoLista">
+                            <div class="carrinho-vazio">
+                                <span>🛒</span>
+                                <p>Adicione produtos escaneando ou buscando no estoque</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Resumo do carrinho -->
+                        <div class="carrinho-resumo">
+                            <div class="resumo-linha">
+                                <span>Subtotal:</span>
+                                <strong id="subtotal">R$ 0,00</strong>
+                            </div>
+                            <div class="resumo-linha">
+                                <span>Desconto:</span>
+                                <div class="desconto-input">
+                                    <input type="number" id="descontoValor" step="0.01" placeholder="0,00" value="0">
+                                    <select id="descontoTipo">
+                                        <option value="fixo">R$</option>
+                                        <option value="percent">%</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="resumo-linha total">
+                                <span>TOTAL:</span>
+                                <strong id="totalVenda">R$ 0,00</strong>
+                            </div>
+                        </div>
+                        
+                        <!-- Cliente -->
+                        <div class="carrinho-cliente">
+                            <div class="cliente-info">
+                                <span class="cliente-label">👤 Cliente:</span>
+                                <span class="cliente-nome" id="clienteNome">Não informado</span>
+                            </div>
+                            <button class="btn-small btn-cliente" id="selecionarClienteBtn">
+                                Selecionar
+                            </button>
+                        </div>
+                        
+                        <!-- Finalizar venda -->
+                        <button class="btn-finalizar" id="finalizarVendaBtn">
+                            💰 Finalizar Venda
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- COLUNA DIREITA: PRODUTOS -->
+                <div class="produtos-coluna">
+                    <!-- Scanner e busca -->
+                    <div class="card busca-card">
+                        <div class="busca-tabs">
+                            <button class="tab-btn active" data-tab="scanner">📷 Escanear</button>
+                            <button class="tab-btn" data-tab="buscar">🔍 Buscar Produto</button>
+                        </div>
+                        
+                        <!-- Aba Scanner -->
+                        <div class="tab-content active" id="tabScanner">
+                            <div class="scanner-area">
+                                <div class="scanner-placeholder" id="scannerPlaceholder">
+                                    <span>📷</span>
+                                    <p>Clique para ativar a câmera</p>
+                                    <button class="btn-primary" id="ativarScannerBtn">Ativar Scanner</button>
+                                </div>
+                                <video id="scannerVideo" style="display: none;" autoplay playsinline></video>
+                                <div class="scanner-result" id="scannerResultado" style="display: none;">
+                                    <div class="resultado-info">
+                                        <strong id="scannerProdutoNome">---</strong>
+                                        <span id="scannerProdutoCodigo">---</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="manual-input">
+                                <p>Ou digite o código de barras:</p>
+                                <div class="input-group-button">
+                                    <input type="text" id="codigoBarrasInput" placeholder="Digite o código">
+                                    <button class="btn-primary" id="buscarCodigoBtn">Adicionar</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Aba Buscar Produto -->
+                        <div class="tab-content" id="tabBuscar">
+                            <div class="busca-produtos">
+                                <div class="search-box">
+                                    <span class="search-icon">🔍</span>
+                                    <input type="text" id="buscaProdutoInput" placeholder="Buscar por nome, código ou categoria..." class="search-input">
+                                </div>
+                                <div class="filtros-rapidos">
+                                    <button class="filtro-chip" data-categoria="todos">Todos</button>
+                                    <button class="filtro-chip" data-categoria="racao">Rações</button>
+                                    <button class="filtro-chip" data-categoria="remedios">Remédios</button>
+                                    <button class="filtro-chip" data-categoria="brinquedos">Brinquedos</button>
+                                    <button class="filtro-chip" data-categoria="acessorios">Acessórios</button>
+                                </div>
+                                <div class="produtos-grid" id="produtosGrid">
+                                    <div class="loading-grid">
+                                        <span>⏳</span>
+                                        <p>Carregando produtos...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- MODAL: Selecionar Cliente -->
+    <div class="modal" id="selecionarClienteModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Selecionar Cliente</h3>
+                <button class="modal-close" id="closeClienteModalBtn">&times;</button>
+            </div>
+            <div class="busca-cliente">
+                <input type="text" id="buscaClienteInput" placeholder="Buscar cliente por nome ou telefone..." class="search-input">
+            </div>
+            <div class="clientes-lista" id="clientesModalLista">
+                <div class="loading-list">Carregando clientes...</div>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-secondary" id="cancelarClienteBtn">Cancelar</button>
+                <button class="btn-primary" id="clienteAvulsoBtn">Cliente Avulso</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Produto por Kilo (quantidade) -->
+    <div class="modal" id="produtoKiloModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚖️ Produto por Kilo</h3>
+                <button class="modal-close" id="closeKiloModalBtn">&times;</button>
+            </div>
+            <div class="produto-kilo-info" id="produtoKiloInfo">
+                <strong id="kiloProdutoNome">---</strong>
+                <span id="kiloProdutoPreco">R$ 0,00/kg</span>
+            </div>
+            <div class="form-group">
+                <label>Quantidade (kg)</label>
+                <input type="number" id="kiloQuantidade" step="0.1" placeholder="Ex: 1.5" value="1">
+            </div>
+            <div class="total-parcial">
+                <span>Subtotal:</span>
+                <strong id="kiloSubtotal">R$ 0,00</strong>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-secondary" id="cancelarKiloBtn">Cancelar</button>
+                <button class="btn-primary" id="confirmarKiloBtn">Adicionar ao Carrinho</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Finalizar Venda -->
+    <div class="modal" id="finalizarVendaModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>💰 Finalizar Venda</h3>
+                <button class="modal-close" id="closeFinalizarModalBtn">&times;</button>
+            </div>
+            <div class="finalizar-resumo">
+                <div class="resumo-item">
+                    <span>Total de itens:</span>
+                    <strong id="finalizarItens">0</strong>
+                </div>
+                <div class="resumo-item">
+                    <span>Subtotal:</span>
+                    <strong id="finalizarSubtotal">R$ 0,00</strong>
+                </div>
+                <div class="resumo-item">
+                    <span>Desconto:</span>
+                    <strong id="finalizarDesconto">R$ 0,00</strong>
+                </div>
+                <div class="resumo-item total">
+                    <span>TOTAL:</span>
+                    <strong id="finalizarTotal">R$ 0,00</strong>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Forma de pagamento *</label>
+                <select id="formaPagamento" class="pagamento-select">
+                    <option value="dinheiro">💰 Dinheiro</option>
+                    <option value="pix">📱 PIX</option>
+                    <option value="debito">💳 Cartão Débito</option>
+                    <option value="credito">💳 Cartão Crédito</option>
+                    <option value="transferencia">🏦 Transferência</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="trocoGroup" style="display: none;">
+                <label>Valor recebido (R$)</label>
+                <input type="number" id="valorRecebido" step="0.01" placeholder="0,00">
+                <div class="troco-info" id="trocoInfo" style="display: none;">
+                    <span>Troco:</span>
+                    <strong id="trocoValor">R$ 0,00</strong>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button class="btn-secondary" id="cancelarFinalizarBtn">Cancelar</button>
+                <button class="btn-primary" id="confirmarFinalizarBtn">Confirmar Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Comprovante -->
+    <div class="modal modal-comprovante" id="comprovanteModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🧾 Comprovante de Venda</h3>
+                <button class="modal-close" id="closeComprovanteBtn">&times;</button>
+            </div>
+            <div class="comprovante-content" id="comprovanteContent">
+                <!-- Conteúdo gerado via JS -->
+            </div>
+            <div class="form-buttons">
+                <button class="btn-secondary" id="imprimirComprovanteBtn">🖨️ Imprimir</button>
+                <button class="btn-primary" id="fecharComprovanteBtn">Nova Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/global.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/vendas.js"></script>
+</body>
+</html>

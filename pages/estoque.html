@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Estoque | EstoquePro</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/estoque.css">
+</head>
+<body>
+    <!-- Botão menu hambúrguer (mobile) -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    
+    <!-- Menu lateral -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">📦 LP Automações</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="clientes.html" class="nav-item" data-page="clientes">
+                <span class="nav-icon">👥</span>
+                <span>Clientes</span>
+            </a>
+            <a href="estoque.html" class="nav-item active" data-page="estoque">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
+            </a>
+            <a href="financeiro.html" class="nav-item" data-page="financeiro">
+                <span class="nav-icon">💰</span>
+                <span>Financeiro</span>
+            </a>
+            <a href="vendas.html" class="nav-item" data-page="vendas">
+                <span class="nav-icon">🛒</span>
+                <span>Vendas</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-avatar">👤</span>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Carregando...</span>
+                    <span class="user-email" id="userEmail">carregando@email.com</span>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+    </aside>
+    
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+        <div class="page-container">
+            <!-- Cabeçalho -->
+            <div class="page-header">
+                <div class="header-left">
+                    <h1 class="page-title">📦 Estoque</h1>
+                    <p class="page-subtitle">Gerencie produtos, preços por kilo e escaneie códigos de barras</p>
+                </div>
+                <button class="btn-primary" id="btnEscanear">
+                    📷 Escanear Código
+                </button>
+            </div>
+
+            <!-- Cards de resumo -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">🏷️</div>
+                    <div class="card-info">
+                        <span class="card-label">Total Produtos</span>
+                        <span class="card-value" id="totalProdutos">0</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">⚠️</div>
+                    <div class="card-info">
+                        <span class="card-label">Estoque Crítico</span>
+                        <span class="card-value danger" id="estoqueCritico">0</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🔄</div>
+                    <div class="card-info">
+                        <span class="card-label">Produtos por Kilo</span>
+                        <span class="card-value" id="produtosPorKilo">0</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📦</div>
+                    <div class="card-info">
+                        <span class="card-label">Produtos em Falta</span>
+                        <span class="card-value danger" id="produtosEmFalta">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros e busca -->
+            <div class="filters-bar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Buscar por nome, código ou categoria..." class="search-input">
+                </div>
+                <div class="filter-group">
+                    <select id="filtroCategoria" class="filter-select">
+                        <option value="todos">Todas categorias</option>
+                        <option value="racao">Rações</option>
+                        <option value="remédios">Remédios</option>
+                        <option value="brinquedos">Brinquedos</option>
+                        <option value="casinhas">Casinhas</option>
+                        <option value="acessorios">Acessórios</option>
+                    </select>
+                    <select id="filtroStatus" class="filter-select">
+                        <option value="todos">Todos</option>
+                        <option value="critico">Estoque crítico</option>
+                        <option value="falta">Em falta</option>
+                        <option value="normal">Normal</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabela de produtos -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3>📋 Produtos em Estoque</h3>
+                    <button class="btn-small" id="btnNovoProduto">+ Novo Produto</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table produtos-table">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Produto</th>
+                                <th>Código</th>
+                                <th>Categoria</th>
+                                <th>Preço</th>
+                                <th>Estoque</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="produtosTableBody">
+                            <tr class="table-loading">
+                                <td colspan="8" style="text-align: center;">Carregando produtos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- MODAL: Scanner de código de barras -->
+    <div class="modal modal-scanner" id="scannerModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📷 Escanear Código de Barras</h3>
+                <button class="modal-close" id="closeScannerBtn">&times;</button>
+            </div>
+            <div class="scanner-container">
+                <div class="scanner-video-container">
+                    <video id="scannerVideo" autoplay playsinline></video>
+                    <div class="scanner-overlay">
+                        <div class="scanner-line"></div>
+                    </div>
+                </div>
+                <div class="scanner-input">
+                    <p>Ou digite o código manualmente:</p>
+                    <div class="manual-input-group">
+                        <input type="text" id="codigoManual" placeholder="Digite o código de barras">
+                        <button class="btn-primary" id="buscarCodigoBtn">Buscar</button>
+                    </div>
+                </div>
+                <div class="scanner-result" id="scannerResult" style="display: none;">
+                    <div class="result-card">
+                        <span class="result-icon">✅</span>
+                        <div>
+                            <strong id="resultNome">Produto encontrado</strong>
+                            <span id="resultCodigo">Código: ---</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Novo/Editar Produto -->
+    <div class="modal modal-large" id="produtoModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="produtoModalTitle">➕ Novo Produto</h3>
+                <button class="modal-close" id="closeProdutoBtn">&times;</button>
+            </div>
+            <form id="produtoForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Foto do produto</label>
+                        <div class="upload-foto">
+                            <div class="foto-preview" id="fotoPreview">
+                                <span>📷</span>
+                            </div>
+                            <input type="file" id="produtoFoto" accept="image/*" style="display: none;">
+                            <button type="button" class="btn-secondary" id="btnUploadFoto">Enviar foto</button>
+                        </div>
+                    </div>
+                    <div class="form-group flex-2">
+                        <label>Nome do produto *</label>
+                        <input type="text" id="produtoNome" placeholder="Ex: Raçao Premium para Cães" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Código de barras</label>
+                        <div class="input-group-button">
+                            <input type="text" id="produtoCodigo" placeholder="Digite ou escaneie">
+                            <button type="button" class="btn-icon-scanner" id="btnScanProduto">📷</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="produtoCategoria">
+                            <option value="racao">Ração</option>
+                            <option value="remedios">Remédios</option>
+                            <option value="brinquedos">Brinquedos</option>
+                            <option value="casinhas">Casinhas</option>
+                            <option value="acessorios">Acessórios</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Preço por unidade (R$)</label>
+                        <input type="number" id="produtoPreco" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label>Preço por kilo (R$) - <span class="highlight">Diferencial Pet</span></label>
+                        <input type="number" id="produtoPrecoKilo" step="0.01" placeholder="0,00">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Estoque atual (unidades)</label>
+                        <input type="number" id="produtoEstoque" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Estoque mínimo (alerta)</label>
+                        <input type="number" id="produtoEstoqueMinimo" value="5">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Fornecedor</label>
+                    <input type="text" id="produtoFornecedor" placeholder="Ex: PetFood Distribuidora">
+                </div>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" id="cancelarProdutoBtn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Ajustar Estoque (venda por kilo) -->
+    <div class="modal" id="ajustarEstoqueModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚖️ Registrar Venda por Kilo</h3>
+                <button class="modal-close" id="closeAjustarBtn">&times;</button>
+            </div>
+            <div class="venda-kilo-container">
+                <div class="produto-info" id="produtoKiloInfo">
+                    <strong>Produto:</strong> <span id="produtoKiloNome">---</span>
+                </div>
+                <div class="form-group">
+                    <label>Quantidade (kg)</label>
+                    <input type="number" id="quantidadeKilo" step="0.1" placeholder="Ex: 1.5">
+                </div>
+                <div class="form-group">
+                    <label>Valor por kilo (R$)</label>
+                    <input type="text" id="valorKilo" readonly style="background: #f3f4f6;">
+                </div>
+                <div class="total-venda">
+                    <span>Total da venda:</span>
+                    <strong id="totalVendaKilo">R$ 0,00</strong>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" id="cancelarAjustarBtn">Cancelar</button>
+                    <button type="button" class="btn-primary" id="confirmarVendaKiloBtn">Confirmar Venda</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/global.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/estoque.js"></script>
+</body>
+</html>

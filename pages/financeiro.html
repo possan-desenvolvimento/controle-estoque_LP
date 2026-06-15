@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Financeiro | EstoquePro</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/financeiro.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Botão menu hambúrguer (mobile) -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    
+    <!-- Menu lateral -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">📦 LP Automações</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="clientes.html" class="nav-item" data-page="clientes">
+                <span class="nav-icon">👥</span>
+                <span>Clientes</span>
+            </a>
+            <a href="estoque.html" class="nav-item" data-page="estoque">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
+            </a>
+            <a href="financeiro.html" class="nav-item active" data-page="financeiro">
+                <span class="nav-icon">💰</span>
+                <span>Financeiro</span>
+            </a>
+            <a href="vendas.html" class="nav-item" data-page="vendas">
+                <span class="nav-icon">🛒</span>
+                <span>Vendas</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-avatar">👤</span>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Carregando...</span>
+                    <span class="user-email" id="userEmail">carregando@email.com</span>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+    </aside>
+    
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+        <div class="page-container">
+            <!-- Cabeçalho -->
+            <div class="page-header">
+                <div class="header-left">
+                    <h1 class="page-title">💰 Financeiro</h1>
+                    <p class="page-subtitle">Controle de receitas, despesas e fluxo de caixa</p>
+                </div>
+                <button class="btn-primary" id="novaMovimentacaoBtn">
+                    + Nova Movimentação
+                </button>
+            </div>
+
+            <!-- Cards de resumo -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">💵</div>
+                    <div class="card-info">
+                        <span class="card-label">Saldo Atual</span>
+                        <span class="card-value" id="saldoAtual">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📈</div>
+                    <div class="card-info">
+                        <span class="card-label">Receitas (mês)</span>
+                        <span class="card-value success" id="receitasMes">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📉</div>
+                    <div class="card-info">
+                        <span class="card-label">Despesas (mês)</span>
+                        <span class="card-value danger" id="despesasMes">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎯</div>
+                    <div class="card-info">
+                        <span class="card-label">Lucro Líquido</span>
+                        <span class="card-value" id="lucroLiquido">R$ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráfico -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3>📊 Fluxo de Caixa (últimos 30 dias)</h3>
+                    <div class="chart-legend">
+                        <span class="legend-receita">🟢 Receitas</span>
+                        <span class="legend-despesa">🔴 Despesas</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="fluxoCaixaChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <select id="filtroPeriodo" class="filter-select">
+                        <option value="hoje">Hoje</option>
+                        <option value="semana">Esta semana</option>
+                        <option value="mes" selected>Este mês</option>
+                        <option value="ultimos30">Últimos 30 dias</option>
+                        <option value="ano">Este ano</option>
+                    </select>
+                    <select id="filtroTipo" class="filter-select">
+                        <option value="todos">Todos</option>
+                        <option value="receita">Receitas</option>
+                        <option value="despesa">Despesas</option>
+                    </select>
+                    <select id="filtroCategoria" class="filter-select">
+                        <option value="todos">Todas categorias</option>
+                        <option value="vendas">Vendas</option>
+                        <option value="fornecedor">Fornecedor</option>
+                        <option value="aluguel">Aluguel</option>
+                        <option value="salario">Salário</option>
+                        <option value="energia">Energia</option>
+                        <option value="agua">Água</option>
+                        <option value="internet">Internet</option>
+                        <option value="outros">Outros</option>
+                    </select>
+                </div>
+                <div class="date-range" id="dateRangePicker" style="display: none;">
+                    <input type="date" id="dataInicio">
+                    <span>até</span>
+                    <input type="date" id="dataFim">
+                    <button class="btn-small" id="aplicarFiltro">Aplicar</button>
+                </div>
+            </div>
+
+            <!-- Extrato -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3>📋 Extrato Financeiro</h3>
+                    <span class="movimentacoes-count" id="movimentacoesCount">0 movimentações</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table extrato-table">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="extratoTableBody">
+                            <tr class="table-loading">
+                                <td colspan="6" style="text-align: center;">Carregando movimentações...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="extrato-footer">
+                    <div class="total-receitas">
+                        <span>Total Receitas:</span>
+                        <strong id="totalReceitasExtrato">R$ 0,00</strong>
+                    </div>
+                    <div class="total-despesas">
+                        <span>Total Despesas:</span>
+                        <strong id="totalDespesasExtrato" class="danger">R$ 0,00</strong>
+                    </div>
+                    <div class="total-saldo">
+                        <span>Saldo:</span>
+                        <strong id="saldoExtrato">R$ 0,00</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- MODAL: Nova Movimentação -->
+    <div class="modal" id="movimentacaoModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="movimentacaoModalTitle">➕ Nova Movimentação</h3>
+                <button class="modal-close" id="closeMovimentacaoBtn">&times;</button>
+            </div>
+            <form id="movimentacaoForm">
+                <div class="form-group">
+                    <label>Tipo de movimentação *</label>
+                    <div class="tipo-toggle">
+                        <button type="button" class="tipo-btn receita-btn active" id="tipoReceitaBtn">
+                            📈 Receita
+                        </button>
+                        <button type="button" class="tipo-btn despesa-btn" id="tipoDespesaBtn">
+                            📉 Despesa
+                        </button>
+                    </div>
+                    <input type="hidden" id="movimentacaoTipo" value="receita">
+                </div>
+
+                <div class="form-group">
+                    <label>Data *</label>
+                    <input type="date" id="movimentacaoData" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição *</label>
+                    <input type="text" id="movimentacaoDescricao" placeholder="Ex: Venda de ração - Cliente João" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria *</label>
+                    <select id="movimentacaoCategoria" required>
+                        <optgroup label="Receitas">
+                            <option value="vendas">💰 Vendas</option>
+                            <option value="servicos">🔧 Serviços</option>
+                            <option value="outras_receitas">📌 Outras receitas</option>
+                        </optgroup>
+                        <optgroup label="Despesas">
+                            <option value="fornecedor">📦 Fornecedor</option>
+                            <option value="aluguel">🏠 Aluguel</option>
+                            <option value="salario">👥 Salário</option>
+                            <option value="energia">⚡ Energia</option>
+                            <option value="agua">💧 Água</option>
+                            <option value="internet">🌐 Internet</option>
+                            <option value="imposto">📄 Impostos</option>
+                            <option value="outros">📌 Outros</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Valor (R$) *</label>
+                    <input type="number" id="movimentacaoValor" step="0.01" placeholder="0,00" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Forma de pagamento</label>
+                    <select id="movimentacaoPagamento">
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix">PIX</option>
+                        <option value="debito">Cartão Débito</option>
+                        <option value="credito">Cartão Crédito</option>
+                        <option value="transferencia">Transferência</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Observação (opcional)</label>
+                    <textarea id="movimentacaoObs" rows="2" placeholder="Informações adicionais..."></textarea>
+                </div>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" id="cancelarMovimentacaoBtn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Movimentação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Editar/Excluir (confirmar exclusão) -->
+    <div class="modal modal-small" id="confirmarModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚠️ Confirmar exclusão</h3>
+                <button class="modal-close" id="closeConfirmarBtn">&times;</button>
+            </div>
+            <div class="confirmar-mensagem">
+                <p>Tem certeza que deseja excluir esta movimentação?</p>
+                <p class="mov-detalhe" id="movimentoDetalhe"></p>
+            </div>
+            <div class="form-buttons">
+                <button class="btn-secondary" id="cancelarExclusaoBtn">Cancelar</button>
+                <button class="btn-danger" id="confirmarExclusaoBtn">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/global.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/financeiro.js"></script>
+</body>
+</html>

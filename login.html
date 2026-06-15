@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Login | EstoquePro</title>
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/login.css">
+</head>
+
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">📦 LP Automações & Soluções</div>
+                <p class="subtitle">Gerencie seu estoque com inteligência</p>
+            </div>
+
+            <form id="loginForm" class="login-form">
+                <div class="input-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" placeholder="seu@email.com" autocomplete="email"
+                        required>
+                    <span class="error-message" id="emailError"></span>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Senha</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" name="password" placeholder="••••••••"
+                            autocomplete="current-password" required>
+                        <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                    </div>
+                    <span class="error-message" id="passwordError"></span>
+                </div>
+
+                <div class="login-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe"> Lembrar-me
+                    </label>
+                    <a href="#" class="forgot-password">Esqueceu a senha?</a>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">
+                    <span class="btn-text">Entrar</span>
+                    <span class="btn-spinner" style="display: none;">⏳</span>
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>Não tem uma conta? <a href="#" id="showTrial">Começar trial grátis de 30 dias</a></p>
+            </div>
+
+            <div style="margin-top: 16px; text-align: center; font-size: 12px; color: #6B7280;">
+                🔐 Teste: <strong>admin@estoque.com</strong> / <strong>123456</strong>
+            </div>
+
+        </div>
+
+        <div class="login-features">
+            <div class="feature">
+                <span>📊</span>
+                <span>Controle em tempo real</span>
+            </div>
+            <div class="feature">
+                <span>🔔</span>
+                <span>Alertas automáticos</span>
+            </div>
+            <div class="feature">
+                <span>📱</span>
+                <span>Funciona no celular</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="trial-modal" id="trialModal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>🚀 Iniciar Trial de 30 dias</h2>
+            <p>Preencha seus dados para começar gratuitamente. Sem compromisso, sem pedir cartão.</p>
+            <form id="trialForm">
+                <input type="text" placeholder="Nome completo" id="trialName" required>
+                <input type="email" placeholder="E-mail" id="trialEmail" required>
+                <input type="tel" placeholder="WhatsApp (opcional)" id="trialPhone">
+                <button type="submit" class="btn-trial">Iniciar meu trial →</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/global.js"></script>
+    <script src="js/login.js"></script>
+</body>
+
+</html>

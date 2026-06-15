@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Clientes | EstoquePro</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/clientes.css">
+</head>
+<body>
+    <!-- Botão menu hambúrguer (mobile) -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    
+    <!-- Menu lateral (igual do dashboard) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">📦 LP Automações</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="dashboard.html" class="nav-item" data-page="dashboard">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="clientes.html" class="nav-item active" data-page="clientes">
+                <span class="nav-icon">👥</span>
+                <span>Clientes</span>
+            </a>
+            <a href="estoque.html" class="nav-item" data-page="estoque">
+                <span class="nav-icon">📦</span>
+                <span>Estoque</span>
+            </a>
+            <a href="financeiro.html" class="nav-item" data-page="financeiro">
+                <span class="nav-icon">💰</span>
+                <span>Financeiro</span>
+            </a>
+            <a href="vendas.html" class="nav-item" data-page="vendas">
+                <span class="nav-icon">🛒</span>
+                <span>Vendas</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-avatar">👤</span>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Carregando...</span>
+                    <span class="user-email" id="userEmail">carregando@email.com</span>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sair</button>
+        </div>
+    </aside>
+    
+    <!-- Conteúdo principal -->
+    <main class="main-content" id="mainContent">
+        <div class="page-container">
+            <!-- Cabeçalho -->
+            <div class="page-header">
+                <div class="header-left">
+                    <h1 class="page-title">👥 Clientes</h1>
+                    <p class="page-subtitle">Gerencie seus clientes e acompanhe quem mais gasta</p>
+                </div>
+                <button class="btn-primary" id="novoClienteBtn">
+                    + Novo Cliente
+                </button>
+            </div>
+
+            <!-- Cards de resumo -->
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">👥</div>
+                    <div class="card-info">
+                        <span class="card-label">Total de Clientes</span>
+                        <span class="card-value" id="totalClientes">0</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">💰</div>
+                    <div class="card-info">
+                        <span class="card-label">Ticket Médio</span>
+                        <span class="card-value" id="ticketMedio">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">⭐</div>
+                    <div class="card-info">
+                        <span class="card-label">Top Cliente</span>
+                        <span class="card-value" id="topCliente">---</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon">⚠️</div>
+                    <div class="card-info">
+                        <span class="card-label">Clientes Inativos</span>
+                        <span class="card-value danger" id="clientesInativos">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-bar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Buscar por nome ou telefone..." class="search-input">
+                </div>
+                <div class="filter-group">
+                    <select id="filtroStatus" class="filter-select">
+                        <option value="todos">Todos os clientes</option>
+                        <option value="ativos">Ativos</option>
+                        <option value="inativos">Inativos (30+ dias sem compra)</option>
+                        <option value="top">Top gastadores</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabela de clientes -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <h3>📋 Lista de Clientes</h3>
+                    <span class="clientes-count" id="clientesCount">0 clientes</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table clientes-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Telefone</th>
+                                <th>Total Gasto</th>
+                                <th>Última Compra</th>
+                                <th>Frequência</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientesTableBody">
+                            <tr class="table-loading">
+                                <td colspan="7" style="text-align: center;">Carregando clientes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Overlay para mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- MODAL: Novo Cliente -->
+    <div class="modal" id="novoClienteModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>➕ Novo Cliente</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <form id="novoClienteForm">
+                <div class="form-group">
+                    <label for="clienteNome">Nome completo *</label>
+                    <input type="text" id="clienteNome" placeholder="Ex: João Silva" required>
+                </div>
+                <div class="form-group">
+                    <label for="clienteTelefone">WhatsApp / Telefone *</label>
+                    <input type="tel" id="clienteTelefone" placeholder="(11) 99999-9999" required>
+                    <small>🔔 Usaremos para enviar lembretes e promoções</small>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="btn-secondary" id="cancelarModalBtn">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Histórico do Cliente -->
+    <div class="modal modal-large" id="historicoModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="historicoClienteNome">📜 Histórico</h3>
+                <button class="modal-close" id="closeHistoricoBtn">&times;</button>
+            </div>
+            <div class="historico-resumo" id="historicoResumo">
+                <div class="resumo-item">
+                    <span>💰 Total gasto:</span>
+                    <strong id="historicoTotal">R$ 0,00</strong>
+                </div>
+                <div class="resumo-item">
+                    <span>📅 Última compra:</span>
+                    <strong id="historicoUltima">---</strong>
+                </div>
+                <div class="resumo-item">
+                    <span>🔄 Compras totais:</span>
+                    <strong id="historicoCompras">0</strong>
+                </div>
+            </div>
+            <div class="historico-lista">
+                <h4>Compras realizadas</h4>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr><th>Data</th><th>Valor</th><th>Produtos</th></tr>
+                        </thead>
+                        <tbody id="historicoTableBody">
+                            <tr><td colspan="3" style="text-align: center;">Nenhuma compra registrada</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/global.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/clientes.js"></script>
+</body>
+</html>
