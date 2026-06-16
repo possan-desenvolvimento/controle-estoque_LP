@@ -154,22 +154,28 @@ function loadProdutosGrid() {
 // ============================================
 
 function listarCamerasPDV() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    
+    if (switchBtn) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCameraPDV);
+    }
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.warn('enumerateDevices não suportado');
+        return;
+    }
     
     navigator.mediaDevices.enumerateDevices()
         .then(devices => {
             const videoDevices = devices.filter(d => d.kind === 'videoinput');
             camerasPDV = videoDevices;
             
-            const switchBtn = document.getElementById('switchCameraPDVBtn');
-            if (switchBtn) {
-                if (camerasPDV.length > 1) {
-                    switchBtn.style.display = 'flex';
-                    switchBtn.textContent = '🔄';
-                } else {
-                    switchBtn.style.display = 'none';
-                }
-            }
+            console.log(`📷 ${camerasPDV.length} câmera(s) encontrada(s)`);
             
             const hasEnvironment = camerasPDV.some(c => 
                 c.label.toLowerCase().includes('back') || 
@@ -190,24 +196,43 @@ function listarCamerasPDV() {
                 cameraFacingPDV = 'user';
             }
         })
-        .catch(err => console.warn('Erro ao listar câmeras:', err));
+        .catch(err => {
+            console.warn('Erro ao listar câmeras:', err);
+        });
 }
 
 function switchCameraPDV() {
-    if (camerasPDV.length <= 1) return;
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    
+    if (camerasPDV.length === 0) {
+        listarCamerasPDV();
+        setTimeout(() => {
+            if (camerasPDV.length > 0) {
+                switchCameraPDV();
+            } else {
+                alert('Nenhuma câmera disponível para alternar');
+            }
+        }, 500);
+        return;
+    }
     
     currentCameraIndexPDV = (currentCameraIndexPDV + 1) % camerasPDV.length;
+    
+    if (switchBtn) {
+        switchBtn.style.transform = 'rotate(180deg)';
+        setTimeout(() => {
+            switchBtn.style.transform = 'rotate(0deg)';
+        }, 300);
+    }
+    
+    console.log(`🔄 Alternando para câmera ${currentCameraIndexPDV + 1}/${camerasPDV.length}`);
     
     if (scannerAtivoPDV && scannerStreamPDV) {
         scannerStreamPDV.getTracks().forEach(track => track.stop());
         scannerStreamPDV = null;
         ativarCameraEspecificaPDV(currentCameraIndexPDV);
-    }
-    
-    const switchBtn = document.getElementById('switchCameraPDVBtn');
-    if (switchBtn) {
-        switchBtn.textContent = '🔄';
-        switchBtn.style.transform = 'rotate(0deg)';
+    } else {
+        ativarCameraEspecificaPDV(currentCameraIndexPDV);
     }
 }
 
@@ -222,15 +247,37 @@ function ativarCameraEspecificaPDV(cameraIndex) {
         placeholder.innerHTML = `
             <div class="scanner-loading">
                 <span>⏳</span>
-                <p>Alternando câmera...</p>
+                <p>${camerasPDV.length > 0 ? 'Ativando câmera...' : 'Aguardando câmera...'}</p>
                 <div class="spinner"></div>
             </div>
         `;
     }
     
     if (status) {
-        status.textContent = 'Alternando câmera...';
+        status.textContent = camerasPDV.length > 0 ? 'Ativando câmera...' : 'Aguardando câmera...';
         status.style.color = '#F59E0B';
+    }
+    
+    if (camerasPDV.length === 0) {
+        listarCamerasPDV();
+        setTimeout(() => {
+            if (camerasPDV.length === 0) {
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <span>❌</span>
+                        <p>Nenhuma câmera encontrada</p>
+                        <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+                    `;
+                }
+                if (status) {
+                    status.textContent = 'Nenhuma câmera';
+                    status.style.color = '#EF4444';
+                }
+                return;
+            }
+            ativarCameraEspecificaPDV(currentCameraIndexPDV);
+        }, 500);
+        return;
     }
     
     const constraints = {
@@ -263,7 +310,7 @@ function ativarCameraEspecificaPDV(cameraIndex) {
             }, 5000);
         })
         .catch(err => {
-            console.error('Erro ao acessar câmera específica:', err);
+            console.error('Erro ao acessar câmera:', err);
             
             let mensagem = '';
             if (err.name === 'NotAllowedError') {
@@ -327,8 +374,12 @@ function openScannerPDV() {
     
     const switchBtn = document.getElementById('switchCameraPDVBtn');
     if (switchBtn) {
-        switchBtn.style.display = 'none';
+        switchBtn.style.display = 'flex';
         switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCameraPDV);
     }
     
     listarCamerasPDV();
@@ -341,6 +392,15 @@ function ativarScannerPDV() {
     const switchBtn = document.getElementById('switchCameraPDVBtn');
     
     if (!video) return;
+    
+    if (switchBtn) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCameraPDV);
+    }
     
     if (camerasPDV.length === 0) {
         listarCamerasPDV();
@@ -358,14 +418,6 @@ function ativarScannerPDV() {
             ativarCameraEspecificaPDV(currentCameraIndexPDV);
         }, 500);
         return;
-    }
-    
-    if (switchBtn && camerasPDV.length > 1) {
-        switchBtn.style.display = 'flex';
-        switchBtn.textContent = '🔄';
-        const newSwitchBtn = switchBtn.cloneNode(true);
-        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
-        newSwitchBtn.addEventListener('click', switchCameraPDV);
     }
     
     ativarCameraEspecificaPDV(currentCameraIndexPDV);

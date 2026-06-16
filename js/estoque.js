@@ -235,12 +235,6 @@ function setupEventListeners() {
     
     const confirmarVendaBtn = document.getElementById('confirmarVendaKiloBtn');
     if (confirmarVendaBtn) confirmarVendaBtn.addEventListener('click', confirmarVendaKilo);
-    
-    // Botão alternar câmera
-    const switchBtn = document.getElementById('switchCameraBtn');
-    if (switchBtn) {
-        switchBtn.addEventListener('click', switchCamera);
-    }
 }
 
 function filtrarProdutos() {
@@ -270,22 +264,30 @@ function filtrarProdutos() {
 // ============================================
 
 function listarCameras() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    const switchBtn = document.getElementById('switchCameraBtn');
+    
+    // Mostrar o botão SEMPRE
+    if (switchBtn) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        // Remover eventos antigos e adicionar novo
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCamera);
+    }
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.warn('enumerateDevices não suportado');
+        return;
+    }
     
     navigator.mediaDevices.enumerateDevices()
         .then(devices => {
             const videoDevices = devices.filter(d => d.kind === 'videoinput');
             cameras = videoDevices;
             
-            const switchBtn = document.getElementById('switchCameraBtn');
-            if (switchBtn) {
-                if (cameras.length > 1) {
-                    switchBtn.style.display = 'flex';
-                    switchBtn.textContent = '🔄';
-                } else {
-                    switchBtn.style.display = 'none';
-                }
-            }
+            console.log(`📷 ${cameras.length} câmera(s) encontrada(s)`);
             
             const hasEnvironment = cameras.some(c => 
                 c.label.toLowerCase().includes('back') || 
@@ -306,24 +308,43 @@ function listarCameras() {
                 cameraFacing = 'user';
             }
         })
-        .catch(err => console.warn('Erro ao listar câmeras:', err));
+        .catch(err => {
+            console.warn('Erro ao listar câmeras:', err);
+        });
 }
 
 function switchCamera() {
-    if (cameras.length <= 1) return;
+    const switchBtn = document.getElementById('switchCameraBtn');
+    
+    if (cameras.length === 0) {
+        listarCameras();
+        setTimeout(() => {
+            if (cameras.length > 0) {
+                switchCamera();
+            } else {
+                alert('Nenhuma câmera disponível para alternar');
+            }
+        }, 500);
+        return;
+    }
     
     currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+    
+    if (switchBtn) {
+        switchBtn.style.transform = 'rotate(180deg)';
+        setTimeout(() => {
+            switchBtn.style.transform = 'rotate(0deg)';
+        }, 300);
+    }
+    
+    console.log(`🔄 Alternando para câmera ${currentCameraIndex + 1}/${cameras.length}`);
     
     if (scannerAtivo && scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop());
         scannerStream = null;
         ativarCameraEspecifica(currentCameraIndex);
-    }
-    
-    const switchBtn = document.getElementById('switchCameraBtn');
-    if (switchBtn) {
-        switchBtn.textContent = '🔄';
-        switchBtn.style.transform = 'rotate(0deg)';
+    } else {
+        ativarCameraEspecifica(currentCameraIndex);
     }
 }
 
@@ -338,15 +359,38 @@ function ativarCameraEspecifica(cameraIndex) {
         placeholder.innerHTML = `
             <div class="scanner-loading">
                 <span>⏳</span>
-                <p>Alternando câmera...</p>
+                <p>${cameras.length > 0 ? 'Ativando câmera...' : 'Aguardando câmera...'}</p>
                 <div class="spinner"></div>
             </div>
         `;
     }
     
     if (status) {
-        status.textContent = 'Alternando câmera...';
+        status.textContent = cameras.length > 0 ? 'Ativando câmera...' : 'Aguardando câmera...';
         status.style.color = '#F59E0B';
+    }
+    
+    // Se não tem câmeras, tenta listar
+    if (cameras.length === 0) {
+        listarCameras();
+        setTimeout(() => {
+            if (cameras.length === 0) {
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <span>❌</span>
+                        <p>Nenhuma câmera encontrada</p>
+                        <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+                    `;
+                }
+                if (status) {
+                    status.textContent = 'Nenhuma câmera';
+                    status.style.color = '#EF4444';
+                }
+                return;
+            }
+            ativarCameraEspecifica(currentCameraIndex);
+        }, 500);
+        return;
     }
     
     const constraints = {
@@ -380,7 +424,7 @@ function ativarCameraEspecifica(cameraIndex) {
             }, 5000);
         })
         .catch(err => {
-            console.error('Erro ao acessar câmera específica:', err);
+            console.error('Erro ao acessar câmera:', err);
             
             let mensagem = '';
             if (err.name === 'NotAllowedError') {
@@ -442,10 +486,15 @@ function openScannerModal() {
         status.style.animation = 'none';
     }
     
+    // Garantir que o botão de alternar apareça
     const switchBtn = document.getElementById('switchCameraBtn');
     if (switchBtn) {
-        switchBtn.style.display = 'none';
+        switchBtn.style.display = 'flex';
         switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCamera);
     }
     
     listarCameras();
@@ -459,6 +508,17 @@ function ativarScanner() {
     
     if (!video) return;
     
+    // Garantir que o botão apareça
+    if (switchBtn) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        switchBtn.title = 'Alternar câmera (frente/traseira)';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCamera);
+    }
+    
+    // Se não tiver câmeras listadas, lista agora
     if (cameras.length === 0) {
         listarCameras();
         setTimeout(() => {
@@ -475,14 +535,6 @@ function ativarScanner() {
             ativarCameraEspecifica(currentCameraIndex);
         }, 500);
         return;
-    }
-    
-    if (switchBtn && cameras.length > 1) {
-        switchBtn.style.display = 'flex';
-        switchBtn.textContent = '🔄';
-        const newSwitchBtn = switchBtn.cloneNode(true);
-        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
-        newSwitchBtn.addEventListener('click', switchCamera);
     }
     
     ativarCameraEspecifica(currentCameraIndex);
