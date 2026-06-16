@@ -18,23 +18,23 @@
             <div class="sidebar-logo">📦 LP Automações</div>
         </div>
         <nav class="sidebar-nav">
-            <a href="dashboard.html" class="nav-item" data-page="dashboard">
+            <a href="dashboard.html" class="nav-item">
                 <span class="nav-icon">📊</span>
                 <span>Dashboard</span>
             </a>
-            <a href="clientes.html" class="nav-item" data-page="clientes">
+            <a href="clientes.html" class="nav-item">
                 <span class="nav-icon">👥</span>
                 <span>Clientes</span>
             </a>
-            <a href="estoque.html" class="nav-item active" data-page="estoque">
+            <a href="estoque.html" class="nav-item active">
                 <span class="nav-icon">📦</span>
                 <span>Estoque</span>
             </a>
-            <a href="financeiro.html" class="nav-item" data-page="financeiro">
+            <a href="financeiro.html" class="nav-item">
                 <span class="nav-icon">💰</span>
                 <span>Financeiro</span>
             </a>
-            <a href="vendas.html" class="nav-item" data-page="vendas">
+            <a href="vendas.html" class="nav-item">
                 <span class="nav-icon">🛒</span>
                 <span>Vendas</span>
             </a>
@@ -107,7 +107,7 @@
                     <select id="filtroCategoria" class="filter-select">
                         <option value="todos">Todas categorias</option>
                         <option value="racao">Rações</option>
-                        <option value="remédios">Remédios</option>
+                        <option value="remedios">Remédios</option>
                         <option value="brinquedos">Brinquedos</option>
                         <option value="casinhas">Casinhas</option>
                         <option value="acessorios">Acessórios</option>
@@ -155,36 +155,51 @@
     <!-- Overlay mobile -->
     <div class="overlay" id="overlay"></div>
 
-    <!-- MODAL: Scanner de código de barras -->
-    <div class="modal modal-scanner" id="scannerModal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📷 Escanear Código de Barras</h3>
-                <button class="modal-close" id="closeScannerBtn">&times;</button>
+    <!-- ============================================ -->
+    <!-- MODAL SCANNER - OVERLAY (TELA CHEIA IGUAL BANCO) -->
+    <!-- ============================================ -->
+    <div class="scanner-overlay-modal" id="scannerModal" style="display: none;">
+        <div class="scanner-overlay-content">
+            <!-- Cabeçalho -->
+            <div class="scanner-header">
+                <button class="scanner-close" id="closeScannerBtn">✕</button>
+                <span class="scanner-title">📷 Leitor de Código</span>
+                <span class="scanner-status" id="scannerStatus">Aproxime o código</span>
             </div>
-            <div class="scanner-container">
-                <div class="scanner-video-container">
-                    <video id="scannerVideo" autoplay playsinline></video>
-                    <div class="scanner-overlay">
+            
+            <!-- Vídeo -->
+            <div class="scanner-video-wrapper">
+                <video id="scannerVideo" autoplay playsinline></video>
+                <div class="scanner-overlay-guide">
+                    <div class="scanner-frame">
                         <div class="scanner-line"></div>
                     </div>
                 </div>
-                <div class="scanner-input">
-                    <p>Ou digite o código manualmente:</p>
-                    <div class="manual-input-group">
+                <div class="scanner-placeholder" id="scannerPlaceholder">
+                    <span>📷</span>
+                    <p>Clique para ativar a câmera</p>
+                    <button class="btn-primary" id="ativarScannerBtn">Ativar Scanner</button>
+                </div>
+                <!-- Resultado (aparece quando encontra produto) -->
+                <div class="scanner-result-overlay" id="scannerResultOverlay" style="display: none;">
+                    <span class="result-icon">✅</span>
+                    <div class="result-info">
+                        <strong id="scannerProdutoNome">Produto encontrado</strong>
+                        <span id="scannerProdutoCodigo">Código: ---</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rodapé -->
+            <div class="scanner-footer">
+                <div class="scanner-manual">
+                    <span>Ou digite o código manualmente:</span>
+                    <div class="scanner-manual-input">
                         <input type="text" id="codigoManual" placeholder="Digite o código de barras">
                         <button class="btn-primary" id="buscarCodigoBtn">Buscar</button>
                     </div>
                 </div>
-                <div class="scanner-result" id="scannerResult" style="display: none;">
-                    <div class="result-card">
-                        <span class="result-icon">✅</span>
-                        <div>
-                            <strong id="resultNome">Produto encontrado</strong>
-                            <span id="resultCodigo">Código: ---</span>
-                        </div>
-                    </div>
-                </div>
+                <button class="scanner-cancel-btn" id="cancelarScannerBtn">Cancelar</button>
             </div>
         </div>
     </div>

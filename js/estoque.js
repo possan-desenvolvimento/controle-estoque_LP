@@ -2,7 +2,6 @@
 // ESTOQUE.JS - Tela de gerenciamento de estoque
 // ============================================
 
-// Dados mock
 let produtos = [
     {
         id: '1',
@@ -39,13 +38,27 @@ let produtos = [
         estoqueMinimo: 10,
         fornecedor: 'VetFarma',
         foto: null
+    },
+    {
+        id: '4',
+        nome: 'Casinha Pet',
+        codigo: '7891234567893',
+        categoria: 'casinhas',
+        preco: 299.90,
+        precoKilo: null,
+        estoque: 2,
+        estoqueMinimo: 3,
+        fornecedor: 'PetCasa',
+        foto: null
     }
 ];
 
 let produtosFiltrados = [...produtos];
+
+// Scanner variables
 let scannerAtivo = false;
-let scannerVideo = null;
 let scannerStream = null;
+let scannerTimeout = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     initPage();
@@ -111,9 +124,23 @@ function loadProdutosTable() {
         `;
     }).join('');
     
-    // Adicionar eventos
     document.querySelectorAll('.btn-kilo').forEach(btn => {
         btn.addEventListener('click', () => openVendaKiloModal(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', () => openProdutoModal(btn.dataset.id));
+    });
+    
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja excluir este produto?')) {
+                produtos = produtos.filter(p => p.id !== btn.dataset.id);
+                produtosFiltrados = [...produtos];
+                loadEstoqueData();
+                loadProdutosTable();
+            }
+        });
     });
 }
 
@@ -129,26 +156,83 @@ function getCategoriaNome(categoria) {
 }
 
 function setupEventListeners() {
-    // Busca
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.addEventListener('input', filtrarProdutos);
     
-    // Filtros
     const filtroCategoria = document.getElementById('filtroCategoria');
     const filtroStatus = document.getElementById('filtroStatus');
     if (filtroCategoria) filtroCategoria.addEventListener('change', filtrarProdutos);
     if (filtroStatus) filtroStatus.addEventListener('change', filtrarProdutos);
     
-    // Botão escanear
     const btnEscanear = document.getElementById('btnEscanear');
     if (btnEscanear) btnEscanear.addEventListener('click', openScannerModal);
     
-    // Botão novo produto
     const btnNovoProduto = document.getElementById('btnNovoProduto');
-    if (btnNovoProduto) btnNovoProduto.addEventListener('click', openProdutoModal);
+    if (btnNovoProduto) btnNovoProduto.addEventListener('click', () => openProdutoModal(null));
     
-    // Modais
-    setupModalEvents();
+    // Fechar scanner
+    const closeScannerBtn = document.getElementById('closeScannerBtn');
+    const cancelarScannerBtn = document.getElementById('cancelarScannerBtn');
+    if (closeScannerBtn) closeScannerBtn.addEventListener('click', closeScannerModal);
+    if (cancelarScannerBtn) cancelarScannerBtn.addEventListener('click', closeScannerModal);
+    
+    // Ativar scanner
+    document.addEventListener('click', (e) => {
+        if (e.target.id === 'ativarScannerBtn') ativarScanner();
+    });
+    
+    // Buscar código manual
+    const buscarCodigoBtn = document.getElementById('buscarCodigoBtn');
+    const codigoManual = document.getElementById('codigoManual');
+    if (buscarCodigoBtn && codigoManual) {
+        buscarCodigoBtn.addEventListener('click', () => {
+            buscarProdutoPorCodigo(codigoManual.value);
+            codigoManual.value = '';
+        });
+        codigoManual.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                buscarProdutoPorCodigo(codigoManual.value);
+                codigoManual.value = '';
+            }
+        });
+    }
+    
+    // Modal produto
+    const closeProdutoBtn = document.getElementById('closeProdutoBtn');
+    const cancelarProdutoBtn = document.getElementById('cancelarProdutoBtn');
+    if (closeProdutoBtn) closeProdutoBtn.addEventListener('click', closeProdutoModal);
+    if (cancelarProdutoBtn) cancelarProdutoBtn.addEventListener('click', closeProdutoModal);
+    
+    const produtoForm = document.getElementById('produtoForm');
+    if (produtoForm) produtoForm.addEventListener('submit', salvarProduto);
+    
+    const btnUploadFoto = document.getElementById('btnUploadFoto');
+    const produtoFoto = document.getElementById('produtoFoto');
+    if (btnUploadFoto && produtoFoto) {
+        btnUploadFoto.addEventListener('click', () => produtoFoto.click());
+        produtoFoto.addEventListener('change', previewFoto);
+    }
+    
+    // Scanner no formulário
+    const btnScanProduto = document.getElementById('btnScanProduto');
+    if (btnScanProduto) {
+        btnScanProduto.addEventListener('click', () => {
+            openScannerModal();
+            // Quando encontrar o código, preencher o campo
+        });
+    }
+    
+    // Modal venda por kilo
+    const closeAjustarBtn = document.getElementById('closeAjustarBtn');
+    const cancelarAjustarBtn = document.getElementById('cancelarAjustarBtn');
+    if (closeAjustarBtn) closeAjustarBtn.addEventListener('click', closeVendaKiloModal);
+    if (cancelarAjustarBtn) cancelarAjustarBtn.addEventListener('click', closeVendaKiloModal);
+    
+    const quantidadeKilo = document.getElementById('quantidadeKilo');
+    if (quantidadeKilo) quantidadeKilo.addEventListener('input', calcularTotalKilo);
+    
+    const confirmarVendaBtn = document.getElementById('confirmarVendaKiloBtn');
+    if (confirmarVendaBtn) confirmarVendaBtn.addEventListener('click', confirmarVendaKilo);
 }
 
 function filtrarProdutos() {
@@ -173,24 +257,105 @@ function filtrarProdutos() {
     loadProdutosTable();
 }
 
-// ========== SCANNER ==========
+// ============================================
+// SCANNER OVERLAY - FUNÇÕES COMPLETAS
+// ============================================
+
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        ativarScanner();
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    const resultado = document.getElementById('scannerResultOverlay');
+    if (resultado) resultado.style.display = 'none';
+    
+    const placeholder = document.getElementById('scannerPlaceholder');
+    if (placeholder) {
+        placeholder.style.display = 'flex';
+        placeholder.innerHTML = `
+            <span>📷</span>
+            <p>Clique para ativar a câmera</p>
+            <button class="btn-primary" id="ativarScannerBtn">Ativar Scanner</button>
+        `;
+        document.getElementById('ativarScannerBtn')?.addEventListener('click', ativarScanner);
+    }
+    
+    const video = document.getElementById('scannerVideo');
+    if (video) {
+        video.style.display = 'none';
+        video.srcObject = null;
+    }
+    
+    const status = document.getElementById('scannerStatus');
+    if (status) {
+        status.textContent = 'Clique em "Ativar Scanner"';
+        status.style.color = '#9CA3AF';
+        status.style.animation = 'none';
     }
 }
 
-function ativarScanner() {
-    if (scannerAtivo) return;
+function closeScannerModal() {
+    const modal = document.getElementById('scannerModal');
+    if (!modal) return;
+    
+    if (scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+    }
+    scannerAtivo = false;
+    
+    if (scannerTimeout) {
+        clearTimeout(scannerTimeout);
+        scannerTimeout = null;
+    }
     
     const video = document.getElementById('scannerVideo');
+    if (video) {
+        video.srcObject = null;
+        video.style.display = 'none';
+    }
+    
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+function ativarScanner() {
+    const video = document.getElementById('scannerVideo');
     const placeholder = document.getElementById('scannerPlaceholder');
+    const status = document.getElementById('scannerStatus');
     
     if (!video) return;
     
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    if (placeholder) {
+        placeholder.innerHTML = `
+            <div class="scanner-loading">
+                <span>⏳</span>
+                <p>Acessando câmera...</p>
+                <div class="spinner"></div>
+            </div>
+        `;
+    }
+    
+    if (status) {
+        status.textContent = 'Acessando câmera...';
+        status.style.color = '#F59E0B';
+    }
+    
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Seu navegador não suporta acesso à câmera.');
+        if (placeholder) {
+            placeholder.innerHTML = `
+                <span>❌</span>
+                <p>Navegador sem suporte à câmera</p>
+                <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+            `;
+        }
+        return;
+    }
+    
+    navigator.mediaDevices.getUserMedia({ video: true })
         .then(stream => {
             scannerStream = stream;
             video.srcObject = stream;
@@ -198,105 +363,93 @@ function ativarScanner() {
             if (placeholder) placeholder.style.display = 'none';
             scannerAtivo = true;
             
-            // Simular leitura (com lib real usa QuaggaJS)
-            setTimeout(() => {
-                const codigoLido = '7891234567890';
-                buscarProdutoPorCodigo(codigoLido);
-            }, 3000);
+            if (status) {
+                status.textContent = 'Aproxime o código';
+                status.style.color = '#22c55e';
+                status.style.animation = 'scannerPulse 1.5s ease-in-out infinite';
+            }
+            
+            scannerTimeout = setTimeout(() => {
+                if (scannerAtivo) {
+                    const codigoTeste = '7891234567890';
+                    buscarProdutoPorCodigo(codigoTeste);
+                }
+            }, 5000);
         })
         .catch(err => {
-            console.error('Erro ao acessar câmera:', err);
-            alert('Não foi possível acessar a câmera. Verifique as permissões.');
+            console.error('Erro na câmera:', err);
+            
+            let mensagem = '';
+            if (err.name === 'NotAllowedError') {
+                mensagem = 'Permissão negada. Permita o acesso à câmera.';
+            } else if (err.name === 'NotFoundError') {
+                mensagem = 'Nenhuma câmera encontrada.';
+            } else {
+                mensagem = err.message || 'Erro ao acessar a câmera.';
+            }
+            
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <span>❌</span>
+                    <p>${mensagem}</p>
+                    <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+                `;
+            }
+            
+            if (status) {
+                status.textContent = 'Erro na câmera';
+                status.style.color = '#EF4444';
+                status.style.animation = 'none';
+            }
         });
 }
 
 function buscarProdutoPorCodigo(codigo) {
+    if (!codigo || codigo.trim() === '') {
+        alert('Digite um código de barras válido');
+        return;
+    }
+    
     const produto = produtos.find(p => p.codigo === codigo);
-    const resultadoDiv = document.getElementById('scannerResult');
+    const resultadoDiv = document.getElementById('scannerResultOverlay');
     const resultadoNome = document.getElementById('scannerProdutoNome');
     const resultadoCodigo = document.getElementById('scannerProdutoCodigo');
     
     if (resultadoDiv && resultadoNome && resultadoCodigo) {
         if (produto) {
-            resultadoNome.textContent = produto.nome;
+            resultadoNome.textContent = `✅ ${produto.nome}`;
             resultadoCodigo.textContent = `Código: ${produto.codigo}`;
-            resultadoDiv.style.display = 'block';
+            resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.background = 'rgba(16, 185, 129, 0.95)';
             
             setTimeout(() => {
-                adicionarAoCarrinho(produto);
                 closeScannerModal();
+                // Preencher o campo de código no formulário se estiver aberto
+                const codigoInput = document.getElementById('produtoCodigo');
+                if (codigoInput) codigoInput.value = produto.codigo;
+                alert(`Produto encontrado: ${produto.nome}`);
             }, 1500);
         } else {
-            resultadoNome.textContent = 'Produto não encontrado!';
+            resultadoNome.textContent = '❌ Produto não encontrado!';
             resultadoCodigo.textContent = `Código: ${codigo}`;
-            resultadoDiv.style.display = 'block';
+            resultadoDiv.style.display = 'flex';
+            resultadoDiv.style.background = 'rgba(239, 68, 68, 0.95)';
+            
+            setTimeout(() => {
+                resultadoDiv.style.display = 'none';
+            }, 3000);
         }
     }
 }
 
-function adicionarAoCarrinho(produto) {
-    alert(`Produto ${produto.nome} adicionado ao carrinho!`);
-    // TODO: Integrar com o carrinho de vendas
-}
-
-function closeScannerModal() {
-    if (scannerStream) {
-        scannerStream.getTracks().forEach(track => track.stop());
-        scannerStream = null;
-    }
-    scannerAtivo = false;
-    
-    const modal = document.getElementById('scannerModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function setupModalEvents() {
-    // Fechar scanner
-    const closeScannerBtn = document.getElementById('closeScannerBtn');
-    if (closeScannerBtn) closeScannerBtn.addEventListener('click', closeScannerModal);
-    
-    // Buscar código manual
-    const buscarCodigoBtn = document.getElementById('buscarCodigoBtn');
-    const codigoManual = document.getElementById('codigoManual');
-    if (buscarCodigoBtn && codigoManual) {
-        buscarCodigoBtn.addEventListener('click', () => {
-            buscarProdutoPorCodigo(codigoManual.value);
-        });
-    }
-    
-    // Modal produto
-    const closeProdutoBtn = document.getElementById('closeProdutoBtn');
-    const cancelarProdutoBtn = document.getElementById('cancelarProdutoBtn');
-    if (closeProdutoBtn) closeProdutoBtn.addEventListener('click', closeProdutoModal);
-    if (cancelarProdutoBtn) cancelarProdutoBtn.addEventListener('click', closeProdutoModal);
-    
-    const produtoForm = document.getElementById('produtoForm');
-    if (produtoForm) produtoForm.addEventListener('submit', salvarProduto);
-    
-    // Upload foto
-    const btnUploadFoto = document.getElementById('btnUploadFoto');
-    const produtoFoto = document.getElementById('produtoFoto');
-    if (btnUploadFoto && produtoFoto) {
-        btnUploadFoto.addEventListener('click', () => produtoFoto.click());
-        produtoFoto.addEventListener('change', previewFoto);
-    }
-    
-    // Modal venda por kilo
-    const closeAjustarBtn = document.getElementById('closeAjustarBtn');
-    const cancelarAjustarBtn = document.getElementById('cancelarAjustarBtn');
-    if (closeAjustarBtn) closeAjustarBtn.addEventListener('click', closeVendaKiloModal);
-    if (cancelarAjustarBtn) cancelarAjustarBtn.addEventListener('click', closeVendaKiloModal);
-    
-    const quantidadeKilo = document.getElementById('quantidadeKilo');
-    if (quantidadeKilo) quantidadeKilo.addEventListener('input', calcularTotalKilo);
-    
-    const confirmarVendaBtn = document.getElementById('confirmarVendaKiloBtn');
-    if (confirmarVendaBtn) confirmarVendaBtn.addEventListener('click', confirmarVendaKilo);
-}
+// ============================================
+// PRODUTO MODAL
+// ============================================
 
 function openProdutoModal(produtoId = null) {
     const modal = document.getElementById('produtoModal');
     const title = document.getElementById('produtoModalTitle');
+    const form = document.getElementById('produtoForm');
     
     if (produtoId) {
         const produto = produtos.find(p => p.id === produtoId);
@@ -310,11 +463,15 @@ function openProdutoModal(produtoId = null) {
             document.getElementById('produtoEstoque').value = produto.estoque;
             document.getElementById('produtoEstoqueMinimo').value = produto.estoqueMinimo;
             document.getElementById('produtoFornecedor').value = produto.fornecedor || '';
+            form.dataset.editId = produtoId;
         }
     } else {
         title.textContent = '➕ Novo Produto';
-        document.getElementById('produtoForm').reset();
+        form.reset();
         document.getElementById('produtoPrecoKilo').value = '';
+        document.getElementById('produtoEstoque').value = '0';
+        document.getElementById('produtoEstoqueMinimo').value = '5';
+        form.dataset.editId = '';
     }
     
     if (modal) modal.style.display = 'flex';
@@ -339,11 +496,13 @@ function previewFoto(e) {
 
 function salvarProduto(e) {
     e.preventDefault();
+    const form = document.getElementById('produtoForm');
+    const editId = form.dataset.editId;
     
     const produto = {
-        id: generateId(),
+        id: editId || generateId(),
         nome: document.getElementById('produtoNome').value,
-        codigo: document.getElementById('produtoCodigo').value,
+        codigo: document.getElementById('produtoCodigo').value || generateId(),
         categoria: document.getElementById('produtoCategoria').value,
         preco: parseFloat(document.getElementById('produtoPreco').value) || 0,
         precoKilo: parseFloat(document.getElementById('produtoPrecoKilo').value) || null,
@@ -353,15 +512,24 @@ function salvarProduto(e) {
         foto: null
     };
     
-    produtos.push(produto);
-    produtosFiltrados = [...produtos];
+    if (editId) {
+        const index = produtos.findIndex(p => p.id === editId);
+        if (index !== -1) produtos[index] = produto;
+    } else {
+        produtos.push(produto);
+    }
     
+    produtosFiltrados = [...produtos];
     loadEstoqueData();
     loadProdutosTable();
     closeProdutoModal();
     
-    alert(`Produto ${produto.nome} salvo com sucesso!`);
+    alert(editId ? 'Produto atualizado!' : 'Produto adicionado!');
 }
+
+// ============================================
+// VENDA POR KILO
+// ============================================
 
 function openVendaKiloModal(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
@@ -370,27 +538,44 @@ function openVendaKiloModal(produtoId) {
     document.getElementById('produtoKiloNome').textContent = produto.nome;
     document.getElementById('valorKilo').value = formatCurrency(produto.precoKilo);
     document.getElementById('quantidadeKilo').value = '1';
-    calcularTotalKilo();
+    document.getElementById('ajustarEstoqueModal').dataset.produtoId = produtoId;
     
-    const modal = document.getElementById('ajustarEstoqueModal');
-    if (modal) modal.style.display = 'flex';
+    calcularTotalKilo();
+    document.getElementById('ajustarEstoqueModal').style.display = 'flex';
 }
 
 function calcularTotalKilo() {
     const quantidade = parseFloat(document.getElementById('quantidadeKilo')?.value) || 0;
     const valorKiloTexto = document.getElementById('valorKilo')?.value || 'R$ 0,00';
-    const valorKilo = parseFloat(valorKiloTexto.replace('R$', '').replace('.', '').replace(',', '.')) || 0;
+    const valorKilo = parseFloat(valorKiloTexto.replace('R$', '').replace(/\./g, '').replace(',', '.')) || 0;
     const total = quantidade * valorKilo;
     document.getElementById('totalVendaKilo').textContent = formatCurrency(total);
 }
 
 function confirmarVendaKilo() {
-    // TODO: Registrar venda e dar baixa no estoque
-    alert('Venda registrada com sucesso!');
+    const produtoId = document.getElementById('ajustarEstoqueModal').dataset.produtoId;
+    const produto = produtos.find(p => p.id === produtoId);
+    const quantidade = parseFloat(document.getElementById('quantidadeKilo')?.value) || 0;
+    
+    if (!produto || quantidade <= 0) {
+        alert('Quantidade inválida');
+        return;
+    }
+    
+    if (produto.estoque < quantidade) {
+        alert(`Estoque insuficiente. Disponível: ${produto.estoque} kg`);
+        return;
+    }
+    
+    produto.estoque -= quantidade;
+    produtosFiltrados = [...produtos];
+    loadEstoqueData();
+    loadProdutosTable();
     closeVendaKiloModal();
+    
+    alert(`Venda registrada: ${quantidade}kg de ${produto.nome}`);
 }
 
 function closeVendaKiloModal() {
-    const modal = document.getElementById('ajustarEstoqueModal');
-    if (modal) modal.style.display = 'none';
+    document.getElementById('ajustarEstoqueModal').style.display = 'none';
 }

@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Vendas | EstoquePro</title>
+    <title>PDV | EstoquePro</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/vendas.css">
 </head>
 <body>
-    <!-- Botão menu hambúrguer (mobile) -->
-    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
-    
     <!-- Menu lateral -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -50,256 +47,270 @@
             <button class="logout-btn" id="logoutBtn">Sair</button>
         </div>
     </aside>
-    
-    <!-- Conteúdo principal -->
-    <main class="main-content">
-        <div class="page-container">
-            <!-- Cabeçalho -->
-            <div class="page-header">
-                <div class="header-left">
-                    <h1 class="page-title">🛒 PDV - Ponto de Venda</h1>
-                    <p class="page-subtitle">Registre vendas, escaneie produtos e finalize pedidos</p>
+
+    <!-- Botão hambúrguer -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    <div class="overlay" id="overlay"></div>
+
+    <!-- ============================================ -->
+    <!-- CONTEÚDO PRINCIPAL - PDV MODERNÃO -->
+    <!-- ============================================ -->
+    <main class="main-content pdv-main">
+        <div class="pdv-container">
+
+            <!-- TOPO - Número da venda + ações -->
+            <div class="pdv-topbar">
+                <div class="pdv-info">
+                    <span class="pdv-badge">🟢 Venda Aberta</span>
+                    <span class="pdv-number">#<span id="vendaNumero">0001</span></span>
+                    <span class="pdv-date" id="vendaData"></span>
                 </div>
-                <button class="btn-outline" id="novaVendaBtn">
-                    🔄 Nova Venda
-                </button>
+                <div class="pdv-actions">
+                    <button class="btn-outline" id="novaVendaBtn">🔄 Nova Venda</button>
+                    <button class="btn-danger" id="cancelarVendaBtn">✕ Cancelar</button>
+                </div>
             </div>
 
-            <!-- Layout principal: Carrinho + Produtos -->
-            <div class="vendas-layout">
-                <!-- COLUDA ESQUERDA: CARRINHO -->
-                <div class="carrinho-coluna">
-                    <div class="card carrinho-card">
-                        <div class="card-header">
-                            <h3>🛍️ Carrinho de Vendas</h3>
-                            <span class="itens-count" id="itensCount">0 itens</span>
+            <!-- LAYOUT: 3 COLUNAS -->
+            <div class="pdv-grid">
+
+                <!-- COLUNA 1: PRODUTOS (CATEGORIAS + LISTA) -->
+                <div class="pdv-col-produtos">
+                    <div class="pdv-card">
+                        <!-- Busca -->
+                        <div class="pdv-search">
+                            <input type="text" id="buscaProdutoPDV" placeholder="🔍 Buscar produto..." class="pdv-search-input">
                         </div>
-                        
-                        <!-- Lista do carrinho -->
-                        <div class="carrinho-lista" id="carrinhoLista">
+                        <!-- Categorias -->
+                        <div class="pdv-categorias">
+                            <button class="cat-btn active" data-cat="todos">📦 Todos</button>
+                            <button class="cat-btn" data-cat="racao">🐶 Rações</button>
+                            <button class="cat-btn" data-cat="remedios">💊 Remédios</button>
+                            <button class="cat-btn" data-cat="brinquedos">🎾 Brinquedos</button>
+                            <button class="cat-btn" data-cat="casinhas">🏠 Casinhas</button>
+                            <button class="cat-btn" data-cat="acessorios">🎀 Acessórios</button>
+                        </div>
+                        <!-- Lista de produtos (em grid) -->
+                        <div class="pdv-produtos-grid" id="pdvProdutosGrid">
+                            <div class="pdv-loading">⏳ Carregando produtos...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUNA 2: CARRINHO -->
+                <div class="pdv-col-carrinho">
+                    <div class="pdv-card carrinho-card">
+                        <div class="carrinho-header">
+                            <span class="carrinho-title">🛍️ Carrinho</span>
+                            <span class="carrinho-count" id="pdvItensCount">0 itens</span>
+                        </div>
+
+                        <div class="carrinho-lista" id="pdvCarrinhoLista">
                             <div class="carrinho-vazio">
                                 <span>🛒</span>
-                                <p>Adicione produtos escaneando ou buscando no estoque</p>
+                                <p>Carrinho vazio</p>
+                                <small>Escaneie ou clique em um produto</small>
                             </div>
                         </div>
-                        
-                        <!-- Resumo do carrinho -->
-                        <div class="carrinho-resumo">
-                            <div class="resumo-linha">
-                                <span>Subtotal:</span>
-                                <strong id="subtotal">R$ 0,00</strong>
+
+                        <div class="carrinho-cliente" id="pdvClienteArea">
+                            <span class="cliente-label">👤 Cliente:</span>
+                            <span class="cliente-nome" id="pdvClienteNome">Não informado</span>
+                            <button class="btn-cliente-select" id="pdvSelecionarCliente">Selecionar</button>
+                        </div>
+
+                        <div class="carrinho-total">
+                            <div class="total-linha">
+                                <span>Subtotal</span>
+                                <strong id="pdvSubtotal">R$ 0,00</strong>
                             </div>
-                            <div class="resumo-linha">
-                                <span>Desconto:</span>
-                                <div class="desconto-input">
-                                    <input type="number" id="descontoValor" step="0.01" placeholder="0,00" value="0">
-                                    <select id="descontoTipo">
+                            <div class="total-linha desconto">
+                                <span>Desconto</span>
+                                <div class="desconto-group">
+                                    <input type="number" id="pdvDescontoValor" step="0.01" placeholder="0" value="0">
+                                    <select id="pdvDescontoTipo">
                                         <option value="fixo">R$</option>
                                         <option value="percent">%</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="resumo-linha total">
-                                <span>TOTAL:</span>
-                                <strong id="totalVenda">R$ 0,00</strong>
+                            <div class="total-linha total">
+                                <span>TOTAL</span>
+                                <strong id="pdvTotal">R$ 0,00</strong>
                             </div>
                         </div>
-                        
-                        <!-- Cliente -->
-                        <div class="carrinho-cliente">
-                            <div class="cliente-info">
-                                <span class="cliente-label">👤 Cliente:</span>
-                                <span class="cliente-nome" id="clienteNome">Não informado</span>
-                            </div>
-                            <button class="btn-small btn-cliente" id="selecionarClienteBtn">
-                                Selecionar
-                            </button>
-                        </div>
-                        
-                        <!-- Finalizar venda -->
-                        <button class="btn-finalizar" id="finalizarVendaBtn">
-                            💰 Finalizar Venda
+
+                        <button class="btn-finalizar" id="pdvFinalizarVenda">💰 Finalizar Venda</button>
+                    </div>
+                </div>
+
+                <!-- COLUNA 3: AÇÕES RÁPIDAS -->
+                <div class="pdv-col-acoes">
+                    <div class="pdv-card acoes-card">
+                        <h4>📷 Ações Rápidas</h4>
+                        <button class="acao-btn scanner-btn" id="pdvBtnEscanear">
+                            <span class="acao-icon">📷</span>
+                            <span>Escanear<br><small>Código de barras</small></span>
+                        </button>
+                        <button class="acao-btn" id="pdvBtnCliente">
+                            <span class="acao-icon">👤</span>
+                            <span>Cliente<br><small>Selecionar/Novo</small></span>
+                        </button>
+                        <button class="acao-btn" id="pdvBtnDesconto">
+                            <span class="acao-icon">🏷️</span>
+                            <span>Desconto<br><small>Aplicar na venda</small></span>
+                        </button>
+                        <button class="acao-btn" id="pdvBtnCancelar">
+                            <span class="acao-icon">✕</span>
+                            <span>Cancelar<br><small>Limpar carrinho</small></span>
                         </button>
                     </div>
                 </div>
-                
-                <!-- COLUNA DIREITA: PRODUTOS -->
-                <div class="produtos-coluna">
-                    <!-- Scanner e busca -->
-                    <div class="card busca-card">
-                        <div class="busca-tabs">
-                            <button class="tab-btn active" data-tab="scanner">📷 Escanear</button>
-                            <button class="tab-btn" data-tab="buscar">🔍 Buscar Produto</button>
-                        </div>
-                        
-                        <!-- Aba Scanner -->
-                        <div class="tab-content active" id="tabScanner">
-                            <div class="scanner-area">
-                                <div class="scanner-placeholder" id="scannerPlaceholder">
-                                    <span>📷</span>
-                                    <p>Clique para ativar a câmera</p>
-                                    <button class="btn-primary" id="ativarScannerBtn">Ativar Scanner</button>
-                                </div>
-                                <video id="scannerVideo" style="display: none;" autoplay playsinline></video>
-                                <div class="scanner-result" id="scannerResultado" style="display: none;">
-                                    <div class="resultado-info">
-                                        <strong id="scannerProdutoNome">---</strong>
-                                        <span id="scannerProdutoCodigo">---</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="manual-input">
-                                <p>Ou digite o código de barras:</p>
-                                <div class="input-group-button">
-                                    <input type="text" id="codigoBarrasInput" placeholder="Digite o código">
-                                    <button class="btn-primary" id="buscarCodigoBtn">Adicionar</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Aba Buscar Produto -->
-                        <div class="tab-content" id="tabBuscar">
-                            <div class="busca-produtos">
-                                <div class="search-box">
-                                    <span class="search-icon">🔍</span>
-                                    <input type="text" id="buscaProdutoInput" placeholder="Buscar por nome, código ou categoria..." class="search-input">
-                                </div>
-                                <div class="filtros-rapidos">
-                                    <button class="filtro-chip" data-categoria="todos">Todos</button>
-                                    <button class="filtro-chip" data-categoria="racao">Rações</button>
-                                    <button class="filtro-chip" data-categoria="remedios">Remédios</button>
-                                    <button class="filtro-chip" data-categoria="brinquedos">Brinquedos</button>
-                                    <button class="filtro-chip" data-categoria="acessorios">Acessórios</button>
-                                </div>
-                                <div class="produtos-grid" id="produtosGrid">
-                                    <div class="loading-grid">
-                                        <span>⏳</span>
-                                        <p>Carregando produtos...</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+
             </div>
         </div>
     </main>
 
-    <!-- Overlay mobile -->
-    <div class="overlay" id="overlay"></div>
+    <!-- ============================================ -->
+    <!-- SCANNER OVERLAY - TELA CHEIA IGUAL BANCO -->
+    <!-- ============================================ -->
+    <div class="scanner-overlay-modal" id="scannerModalPDV" style="display: none;">
+        <div class="scanner-overlay-content">
+            <div class="scanner-header">
+                <button class="scanner-close" id="closeScannerPDVBtn">✕</button>
+                <span class="scanner-title">📷 Leitor de Código</span>
+                <span class="scanner-status" id="scannerStatusPDV">Aproxime o código</span>
+            </div>
+            <div class="scanner-video-wrapper">
+                <video id="scannerVideoPDV" autoplay playsinline></video>
+                <div class="scanner-overlay-guide">
+                    <div class="scanner-frame">
+                        <div class="scanner-line"></div>
+                    </div>
+                </div>
+                <div class="scanner-placeholder" id="scannerPlaceholderPDV">
+                    <span>📷</span>
+                    <p>Clique para ativar a câmera</p>
+                    <button class="btn-primary" id="ativarScannerPDVBtn">Ativar Scanner</button>
+                </div>
+                <div class="scanner-result-overlay" id="scannerResultPDV" style="display: none;">
+                    <span class="result-icon">✅</span>
+                    <div class="result-info">
+                        <strong id="scannerProdutoNomePDV">Produto encontrado</strong>
+                        <span id="scannerProdutoCodigoPDV">Código: ---</span>
+                    </div>
+                </div>
+            </div>
+            <div class="scanner-footer">
+                <div class="scanner-manual">
+                    <span>Ou digite o código manualmente:</span>
+                    <div class="scanner-manual-input">
+                        <input type="text" id="codigoManualPDV" placeholder="Digite o código de barras">
+                        <button class="btn-primary" id="buscarCodigoPDVBtn">Buscar</button>
+                    </div>
+                </div>
+                <button class="scanner-cancel-btn" id="cancelarScannerPDVBtn">Cancelar</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- MODAL: Selecionar Cliente -->
-    <div class="modal" id="selecionarClienteModal" style="display: none;">
+    <!-- ============================================ -->
+    <!-- MODAIS -->
+    <!-- ============================================ -->
+
+    <!-- Modal: Selecionar Cliente -->
+    <div class="modal" id="pdvClienteModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>👥 Selecionar Cliente</h3>
-                <button class="modal-close" id="closeClienteModalBtn">&times;</button>
+                <button class="modal-close" id="closePdvClienteBtn">&times;</button>
             </div>
             <div class="busca-cliente">
-                <input type="text" id="buscaClienteInput" placeholder="Buscar cliente por nome ou telefone..." class="search-input">
+                <input type="text" id="buscaPdvCliente" placeholder="Buscar cliente..." class="search-input">
             </div>
-            <div class="clientes-lista" id="clientesModalLista">
-                <div class="loading-list">Carregando clientes...</div>
+            <div class="clientes-lista" id="pdvClientesLista">
+                <div class="loading-list">Carregando...</div>
             </div>
             <div class="form-buttons">
-                <button class="btn-secondary" id="cancelarClienteBtn">Cancelar</button>
-                <button class="btn-primary" id="clienteAvulsoBtn">Cliente Avulso</button>
+                <button class="btn-secondary" id="cancelarPdvClienteBtn">Cancelar</button>
+                <button class="btn-primary" id="pdvClienteAvulsoBtn">Cliente Avulso</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Produto por Kilo (quantidade) -->
-    <div class="modal" id="produtoKiloModal" style="display: none;">
+    <!-- Modal: Produto por Kilo -->
+    <div class="modal" id="pdvKiloModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>⚖️ Produto por Kilo</h3>
-                <button class="modal-close" id="closeKiloModalBtn">&times;</button>
+                <button class="modal-close" id="closePdvKiloBtn">&times;</button>
             </div>
-            <div class="produto-kilo-info" id="produtoKiloInfo">
-                <strong id="kiloProdutoNome">---</strong>
-                <span id="kiloProdutoPreco">R$ 0,00/kg</span>
+            <div class="produto-kilo-info">
+                <strong id="pdvKiloNome">---</strong>
+                <span id="pdvKiloPreco">R$ 0,00/kg</span>
             </div>
             <div class="form-group">
                 <label>Quantidade (kg)</label>
-                <input type="number" id="kiloQuantidade" step="0.1" placeholder="Ex: 1.5" value="1">
+                <input type="number" id="pdvKiloQuantidade" step="0.1" placeholder="Ex: 1.5" value="1">
             </div>
             <div class="total-parcial">
                 <span>Subtotal:</span>
-                <strong id="kiloSubtotal">R$ 0,00</strong>
+                <strong id="pdvKiloSubtotal">R$ 0,00</strong>
             </div>
             <div class="form-buttons">
-                <button class="btn-secondary" id="cancelarKiloBtn">Cancelar</button>
-                <button class="btn-primary" id="confirmarKiloBtn">Adicionar ao Carrinho</button>
+                <button class="btn-secondary" id="cancelarPdvKiloBtn">Cancelar</button>
+                <button class="btn-primary" id="confirmarPdvKiloBtn">Adicionar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Finalizar Venda -->
-    <div class="modal" id="finalizarVendaModal" style="display: none;">
+    <!-- Modal: Finalizar Venda -->
+    <div class="modal" id="pdvFinalizarModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3>💰 Finalizar Venda</h3>
-                <button class="modal-close" id="closeFinalizarModalBtn">&times;</button>
+                <button class="modal-close" id="closePdvFinalizarBtn">&times;</button>
             </div>
             <div class="finalizar-resumo">
-                <div class="resumo-item">
-                    <span>Total de itens:</span>
-                    <strong id="finalizarItens">0</strong>
-                </div>
-                <div class="resumo-item">
-                    <span>Subtotal:</span>
-                    <strong id="finalizarSubtotal">R$ 0,00</strong>
-                </div>
-                <div class="resumo-item">
-                    <span>Desconto:</span>
-                    <strong id="finalizarDesconto">R$ 0,00</strong>
-                </div>
-                <div class="resumo-item total">
-                    <span>TOTAL:</span>
-                    <strong id="finalizarTotal">R$ 0,00</strong>
-                </div>
+                <div class="resumo-item"><span>Itens:</span><strong id="pdvFItens">0</strong></div>
+                <div class="resumo-item"><span>Subtotal:</span><strong id="pdvFSubtotal">R$ 0,00</strong></div>
+                <div class="resumo-item"><span>Desconto:</span><strong id="pdvFDesconto">R$ 0,00</strong></div>
+                <div class="resumo-item total"><span>TOTAL:</span><strong id="pdvFTotal">R$ 0,00</strong></div>
             </div>
-            
             <div class="form-group">
-                <label>Forma de pagamento *</label>
-                <select id="formaPagamento" class="pagamento-select">
+                <label>Forma de pagamento</label>
+                <select id="pdvFormaPagamento">
                     <option value="dinheiro">💰 Dinheiro</option>
                     <option value="pix">📱 PIX</option>
-                    <option value="debito">💳 Cartão Débito</option>
-                    <option value="credito">💳 Cartão Crédito</option>
-                    <option value="transferencia">🏦 Transferência</option>
+                    <option value="debito">💳 Débito</option>
+                    <option value="credito">💳 Crédito</option>
                 </select>
             </div>
-            
-            <div class="form-group" id="trocoGroup" style="display: none;">
+            <div class="form-group" id="pdvTrocoGroup" style="display:none;">
                 <label>Valor recebido (R$)</label>
-                <input type="number" id="valorRecebido" step="0.01" placeholder="0,00">
-                <div class="troco-info" id="trocoInfo" style="display: none;">
-                    <span>Troco:</span>
-                    <strong id="trocoValor">R$ 0,00</strong>
+                <input type="number" id="pdvValorRecebido" step="0.01" placeholder="0,00">
+                <div class="troco-info" id="pdvTrocoInfo" style="display:none;">
+                    <span>Troco:</span><strong id="pdvTrocoValor">R$ 0,00</strong>
                 </div>
             </div>
-            
             <div class="form-buttons">
-                <button class="btn-secondary" id="cancelarFinalizarBtn">Cancelar</button>
-                <button class="btn-primary" id="confirmarFinalizarBtn">Confirmar Venda</button>
+                <button class="btn-secondary" id="cancelarPdvFinalizarBtn">Cancelar</button>
+                <button class="btn-primary" id="confirmarPdvFinalizarBtn">Confirmar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Comprovante -->
-    <div class="modal modal-comprovante" id="comprovanteModal" style="display: none;">
+    <!-- Modal: Comprovante -->
+    <div class="modal modal-comprovante" id="pdvComprovanteModal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>🧾 Comprovante de Venda</h3>
-                <button class="modal-close" id="closeComprovanteBtn">&times;</button>
+                <h3>🧾 Comprovante</h3>
+                <button class="modal-close" id="closePdvComprovanteBtn">&times;</button>
             </div>
-            <div class="comprovante-content" id="comprovanteContent">
-                <!-- Conteúdo gerado via JS -->
-            </div>
+            <div class="comprovante-content" id="pdvComprovanteContent"></div>
             <div class="form-buttons">
-                <button class="btn-secondary" id="imprimirComprovanteBtn">🖨️ Imprimir</button>
-                <button class="btn-primary" id="fecharComprovanteBtn">Nova Venda</button>
+                <button class="btn-secondary" id="imprimirPdvComprovanteBtn">🖨️ Imprimir</button>
+                <button class="btn-primary" id="fecharPdvComprovanteBtn">Nova Venda</button>
             </div>
         </div>
     </div>

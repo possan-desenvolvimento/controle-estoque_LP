@@ -4,7 +4,7 @@
 
 // URLs das páginas (para facilitar manutenção)
 const PAGES = {
-    login: 'login.html',
+    login: 'index.html',
     dashboard: 'dashboard.html',
     clientes: 'clientes.html',
     estoque: 'estoque.html',
@@ -16,7 +16,7 @@ function getPageUrl(pageKey) {
     if (!(pageKey in PAGES)) return '#';
     const inPagesDir = window.location.pathname.includes('/pages/');
     if (pageKey === 'login') {
-        return inPagesDir ? '../login.html' : 'login.html';
+        return inPagesDir ? '../index.html' : 'index.html';
     }
 
     return inPagesDir ? PAGES[pageKey] : `pages/${PAGES[pageKey]}`;
