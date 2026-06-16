@@ -164,7 +164,10 @@
             <div class="scanner-header">
                 <button class="scanner-close" id="closeScannerBtn">✕</button>
                 <span class="scanner-title">📷 Leitor de Código</span>
-                <span class="scanner-status" id="scannerStatus">Aproxime o código</span>
+                <div class="scanner-controls">
+                    <button class="scanner-switch-btn" id="switchCameraBtn" title="Alternar câmera">🔄</button>
+                    <span class="scanner-status" id="scannerStatus">Aproxime o código</span>
+                </div>
             </div>
             
             <!-- Vídeo -->
@@ -180,7 +183,6 @@
                     <p>Clique para ativar a câmera</p>
                     <button class="btn-primary" id="ativarScannerBtn">Ativar Scanner</button>
                 </div>
-                <!-- Resultado (aparece quando encontra produto) -->
                 <div class="scanner-result-overlay" id="scannerResultOverlay" style="display: none;">
                     <span class="result-icon">✅</span>
                     <div class="result-info">

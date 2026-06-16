@@ -12,6 +12,9 @@ let categoriaAtual = 'todos';
 let scannerAtivoPDV = false;
 let scannerStreamPDV = null;
 let scannerTimeoutPDV = null;
+let cameraFacingPDV = 'environment';
+let camerasPDV = [];
+let currentCameraIndexPDV = 0;
 
 // Produtos mock
 const produtosEstoque = [
@@ -100,6 +103,12 @@ function setupEventListeners() {
         }
     });
     
+    // Botão alternar câmera
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    if (switchBtn) {
+        switchBtn.addEventListener('click', switchCameraPDV);
+    }
+    
     // Modais
     setupModalEvents();
 }
@@ -141,8 +150,146 @@ function loadProdutosGrid() {
 }
 
 // ============================================
-// SCANNER OVERLAY
+// SCANNER OVERLAY - FUNÇÕES COMPLETAS COM ALTERNÂNCIA DE CÂMERA
 // ============================================
+
+function listarCamerasPDV() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    
+    navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            camerasPDV = videoDevices;
+            
+            const switchBtn = document.getElementById('switchCameraPDVBtn');
+            if (switchBtn) {
+                if (camerasPDV.length > 1) {
+                    switchBtn.style.display = 'flex';
+                    switchBtn.textContent = '🔄';
+                } else {
+                    switchBtn.style.display = 'none';
+                }
+            }
+            
+            const hasEnvironment = camerasPDV.some(c => 
+                c.label.toLowerCase().includes('back') || 
+                c.label.toLowerCase().includes('traseira') ||
+                c.label.toLowerCase().includes('environment')
+            );
+            
+            if (hasEnvironment) {
+                const envIndex = camerasPDV.findIndex(c => 
+                    c.label.toLowerCase().includes('back') || 
+                    c.label.toLowerCase().includes('traseira') ||
+                    c.label.toLowerCase().includes('environment')
+                );
+                currentCameraIndexPDV = envIndex >= 0 ? envIndex : 0;
+                cameraFacingPDV = 'environment';
+            } else {
+                currentCameraIndexPDV = 0;
+                cameraFacingPDV = 'user';
+            }
+        })
+        .catch(err => console.warn('Erro ao listar câmeras:', err));
+}
+
+function switchCameraPDV() {
+    if (camerasPDV.length <= 1) return;
+    
+    currentCameraIndexPDV = (currentCameraIndexPDV + 1) % camerasPDV.length;
+    
+    if (scannerAtivoPDV && scannerStreamPDV) {
+        scannerStreamPDV.getTracks().forEach(track => track.stop());
+        scannerStreamPDV = null;
+        ativarCameraEspecificaPDV(currentCameraIndexPDV);
+    }
+    
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    if (switchBtn) {
+        switchBtn.textContent = '🔄';
+        switchBtn.style.transform = 'rotate(0deg)';
+    }
+}
+
+function ativarCameraEspecificaPDV(cameraIndex) {
+    const video = document.getElementById('scannerVideoPDV');
+    const placeholder = document.getElementById('scannerPlaceholderPDV');
+    const status = document.getElementById('scannerStatusPDV');
+    
+    if (!video) return;
+    
+    if (placeholder) {
+        placeholder.innerHTML = `
+            <div class="scanner-loading">
+                <span>⏳</span>
+                <p>Alternando câmera...</p>
+                <div class="spinner"></div>
+            </div>
+        `;
+    }
+    
+    if (status) {
+        status.textContent = 'Alternando câmera...';
+        status.style.color = '#F59E0B';
+    }
+    
+    const constraints = {
+        video: {
+            deviceId: camerasPDV[cameraIndex]?.deviceId ? { exact: camerasPDV[cameraIndex].deviceId } : undefined,
+            facingMode: cameraFacingPDV
+        }
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            scannerStreamPDV = stream;
+            video.srcObject = stream;
+            video.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+            scannerAtivoPDV = true;
+            
+            if (status) {
+                status.textContent = 'Aproxime o código';
+                status.style.color = '#22c55e';
+                status.style.animation = 'scannerPulse 1.5s ease-in-out infinite';
+            }
+            
+            if (scannerTimeoutPDV) clearTimeout(scannerTimeoutPDV);
+            
+            scannerTimeoutPDV = setTimeout(() => {
+                if (scannerAtivoPDV) {
+                    buscarProdutoPorCodigoPDV('7891234567890');
+                }
+            }, 5000);
+        })
+        .catch(err => {
+            console.error('Erro ao acessar câmera específica:', err);
+            
+            let mensagem = '';
+            if (err.name === 'NotAllowedError') {
+                mensagem = 'Permissão negada. Permita o acesso à câmera.';
+            } else if (err.name === 'NotFoundError') {
+                mensagem = 'Câmera não encontrada. Tente outra.';
+            } else {
+                mensagem = err.message || 'Erro ao acessar a câmera.';
+            }
+            
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <span>❌</span>
+                    <p>${mensagem}</p>
+                    <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+                    <button class="btn-primary" onclick="ativarScannerPDV()" style="margin-top:12px;">Tentar novamente</button>
+                `;
+            }
+            
+            if (status) {
+                status.textContent = 'Erro na câmera';
+                status.style.color = '#EF4444';
+                status.style.animation = 'none';
+            }
+        });
+}
 
 function openScannerPDV() {
     const modal = document.getElementById('scannerModalPDV');
@@ -177,6 +324,51 @@ function openScannerPDV() {
         status.style.color = '#9CA3AF';
         status.style.animation = 'none';
     }
+    
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    if (switchBtn) {
+        switchBtn.style.display = 'none';
+        switchBtn.textContent = '🔄';
+    }
+    
+    listarCamerasPDV();
+}
+
+function ativarScannerPDV() {
+    const video = document.getElementById('scannerVideoPDV');
+    const placeholder = document.getElementById('scannerPlaceholderPDV');
+    const status = document.getElementById('scannerStatusPDV');
+    const switchBtn = document.getElementById('switchCameraPDVBtn');
+    
+    if (!video) return;
+    
+    if (camerasPDV.length === 0) {
+        listarCamerasPDV();
+        setTimeout(() => {
+            if (camerasPDV.length === 0) {
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <span>❌</span>
+                        <p>Nenhuma câmera encontrada</p>
+                        <p style="font-size:12px;color:#6B7280;">Conecte uma câmera e tente novamente</p>
+                    `;
+                }
+                return;
+            }
+            ativarCameraEspecificaPDV(currentCameraIndexPDV);
+        }, 500);
+        return;
+    }
+    
+    if (switchBtn && camerasPDV.length > 1) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCameraPDV);
+    }
+    
+    ativarCameraEspecificaPDV(currentCameraIndexPDV);
 }
 
 function closeScannerPDV() {
@@ -191,78 +383,13 @@ function closeScannerPDV() {
     if (scannerTimeoutPDV) clearTimeout(scannerTimeoutPDV);
     
     const video = document.getElementById('scannerVideoPDV');
-    if (video) { video.srcObject = null; video.style.display = 'none'; }
+    if (video) {
+        video.srcObject = null;
+        video.style.display = 'none';
+    }
     
     modal.style.display = 'none';
     document.body.style.overflow = 'auto';
-}
-
-function ativarScannerPDV() {
-    const video = document.getElementById('scannerVideoPDV');
-    const placeholder = document.getElementById('scannerPlaceholderPDV');
-    const status = document.getElementById('scannerStatusPDV');
-    
-    if (!video) return;
-    
-    if (placeholder) {
-        placeholder.innerHTML = `
-            <div class="scanner-loading">
-                <span>⏳</span>
-                <p>Acessando câmera...</p>
-                <div class="spinner"></div>
-            </div>
-        `;
-    }
-    
-    if (status) { status.textContent = 'Acessando câmera...'; status.style.color = '#F59E0B'; }
-    
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Seu navegador não suporta câmera.');
-        if (placeholder) {
-            placeholder.innerHTML = `
-                <span>❌</span>
-                <p>Navegador sem suporte</p>
-                <p style="font-size:12px;color:#6B7280;">Use o campo manual</p>
-            `;
-        }
-        return;
-    }
-    
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            scannerStreamPDV = stream;
-            video.srcObject = stream;
-            video.style.display = 'block';
-            if (placeholder) placeholder.style.display = 'none';
-            scannerAtivoPDV = true;
-            
-            if (status) {
-                status.textContent = 'Aproxime o código';
-                status.style.color = '#22c55e';
-                status.style.animation = 'scannerPulse 1.5s ease-in-out infinite';
-            }
-            
-            scannerTimeoutPDV = setTimeout(() => {
-                if (scannerAtivoPDV) {
-                    buscarProdutoPorCodigoPDV('7891234567890');
-                }
-            }, 5000);
-        })
-        .catch(err => {
-            console.error('Erro câmera:', err);
-            let msg = err.name === 'NotAllowedError' ? 'Permissão negada. Permita o acesso à câmera.' :
-                      err.name === 'NotFoundError' ? 'Nenhuma câmera encontrada.' :
-                      err.message || 'Erro ao acessar câmera.';
-            
-            if (placeholder) {
-                placeholder.innerHTML = `
-                    <span>❌</span>
-                    <p>${msg}</p>
-                    <p style="font-size:12px;color:#6B7280;">Use o campo manual</p>
-                `;
-            }
-            if (status) { status.textContent = 'Erro na câmera'; status.style.color = '#EF4444'; status.style.animation = 'none'; }
-        });
 }
 
 function buscarProdutoPorCodigoPDV(codigo) {

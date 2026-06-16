@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="../css/vendas.css">
 </head>
 <body>
+    <!-- Botão menu hambúrguer (mobile) -->
+    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    
     <!-- Menu lateral -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
@@ -48,8 +51,7 @@
         </div>
     </aside>
 
-    <!-- Botão hambúrguer -->
-    <button class="hamburger-btn" id="hamburgerBtn">☰</button>
+    <!-- Overlay mobile -->
     <div class="overlay" id="overlay"></div>
 
     <!-- ============================================ -->
@@ -179,7 +181,10 @@
             <div class="scanner-header">
                 <button class="scanner-close" id="closeScannerPDVBtn">✕</button>
                 <span class="scanner-title">📷 Leitor de Código</span>
-                <span class="scanner-status" id="scannerStatusPDV">Aproxime o código</span>
+                <div class="scanner-controls">
+                    <button class="scanner-switch-btn" id="switchCameraPDVBtn" title="Alternar câmera">🔄</button>
+                    <span class="scanner-status" id="scannerStatusPDV">Aproxime o código</span>
+                </div>
             </div>
             <div class="scanner-video-wrapper">
                 <video id="scannerVideoPDV" autoplay playsinline></video>

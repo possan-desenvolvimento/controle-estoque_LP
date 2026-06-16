@@ -59,6 +59,9 @@ let produtosFiltrados = [...produtos];
 let scannerAtivo = false;
 let scannerStream = null;
 let scannerTimeout = null;
+let cameraFacing = 'environment';
+let cameras = [];
+let currentCameraIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
     initPage();
@@ -218,7 +221,6 @@ function setupEventListeners() {
     if (btnScanProduto) {
         btnScanProduto.addEventListener('click', () => {
             openScannerModal();
-            // Quando encontrar o código, preencher o campo
         });
     }
     
@@ -233,6 +235,12 @@ function setupEventListeners() {
     
     const confirmarVendaBtn = document.getElementById('confirmarVendaKiloBtn');
     if (confirmarVendaBtn) confirmarVendaBtn.addEventListener('click', confirmarVendaKilo);
+    
+    // Botão alternar câmera
+    const switchBtn = document.getElementById('switchCameraBtn');
+    if (switchBtn) {
+        switchBtn.addEventListener('click', switchCamera);
+    }
 }
 
 function filtrarProdutos() {
@@ -258,8 +266,147 @@ function filtrarProdutos() {
 }
 
 // ============================================
-// SCANNER OVERLAY - FUNÇÕES COMPLETAS
+// SCANNER OVERLAY - FUNÇÕES COMPLETAS COM ALTERNÂNCIA DE CÂMERA
 // ============================================
+
+function listarCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    
+    navigator.mediaDevices.enumerateDevices()
+        .then(devices => {
+            const videoDevices = devices.filter(d => d.kind === 'videoinput');
+            cameras = videoDevices;
+            
+            const switchBtn = document.getElementById('switchCameraBtn');
+            if (switchBtn) {
+                if (cameras.length > 1) {
+                    switchBtn.style.display = 'flex';
+                    switchBtn.textContent = '🔄';
+                } else {
+                    switchBtn.style.display = 'none';
+                }
+            }
+            
+            const hasEnvironment = cameras.some(c => 
+                c.label.toLowerCase().includes('back') || 
+                c.label.toLowerCase().includes('traseira') ||
+                c.label.toLowerCase().includes('environment')
+            );
+            
+            if (hasEnvironment) {
+                const envIndex = cameras.findIndex(c => 
+                    c.label.toLowerCase().includes('back') || 
+                    c.label.toLowerCase().includes('traseira') ||
+                    c.label.toLowerCase().includes('environment')
+                );
+                currentCameraIndex = envIndex >= 0 ? envIndex : 0;
+                cameraFacing = 'environment';
+            } else {
+                currentCameraIndex = 0;
+                cameraFacing = 'user';
+            }
+        })
+        .catch(err => console.warn('Erro ao listar câmeras:', err));
+}
+
+function switchCamera() {
+    if (cameras.length <= 1) return;
+    
+    currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
+    
+    if (scannerAtivo && scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+        ativarCameraEspecifica(currentCameraIndex);
+    }
+    
+    const switchBtn = document.getElementById('switchCameraBtn');
+    if (switchBtn) {
+        switchBtn.textContent = '🔄';
+        switchBtn.style.transform = 'rotate(0deg)';
+    }
+}
+
+function ativarCameraEspecifica(cameraIndex) {
+    const video = document.getElementById('scannerVideo');
+    const placeholder = document.getElementById('scannerPlaceholder');
+    const status = document.getElementById('scannerStatus');
+    
+    if (!video) return;
+    
+    if (placeholder) {
+        placeholder.innerHTML = `
+            <div class="scanner-loading">
+                <span>⏳</span>
+                <p>Alternando câmera...</p>
+                <div class="spinner"></div>
+            </div>
+        `;
+    }
+    
+    if (status) {
+        status.textContent = 'Alternando câmera...';
+        status.style.color = '#F59E0B';
+    }
+    
+    const constraints = {
+        video: {
+            deviceId: cameras[cameraIndex]?.deviceId ? { exact: cameras[cameraIndex].deviceId } : undefined,
+            facingMode: cameraFacing
+        }
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+            scannerStream = stream;
+            video.srcObject = stream;
+            video.style.display = 'block';
+            if (placeholder) placeholder.style.display = 'none';
+            scannerAtivo = true;
+            
+            if (status) {
+                status.textContent = 'Aproxime o código';
+                status.style.color = '#22c55e';
+                status.style.animation = 'scannerPulse 1.5s ease-in-out infinite';
+            }
+            
+            if (scannerTimeout) clearTimeout(scannerTimeout);
+            
+            scannerTimeout = setTimeout(() => {
+                if (scannerAtivo) {
+                    const codigoTeste = '7891234567890';
+                    buscarProdutoPorCodigo(codigoTeste);
+                }
+            }, 5000);
+        })
+        .catch(err => {
+            console.error('Erro ao acessar câmera específica:', err);
+            
+            let mensagem = '';
+            if (err.name === 'NotAllowedError') {
+                mensagem = 'Permissão negada. Permita o acesso à câmera.';
+            } else if (err.name === 'NotFoundError') {
+                mensagem = 'Câmera não encontrada. Tente outra.';
+            } else {
+                mensagem = err.message || 'Erro ao acessar a câmera.';
+            }
+            
+            if (placeholder) {
+                placeholder.innerHTML = `
+                    <span>❌</span>
+                    <p>${mensagem}</p>
+                    <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+                    <button class="btn-primary" onclick="ativarScanner()" style="margin-top:12px;">Tentar novamente</button>
+                `;
+            }
+            
+            if (status) {
+                status.textContent = 'Erro na câmera';
+                status.style.color = '#EF4444';
+                status.style.animation = 'none';
+            }
+        });
+}
 
 function openScannerModal() {
     const modal = document.getElementById('scannerModal');
@@ -294,6 +441,51 @@ function openScannerModal() {
         status.style.color = '#9CA3AF';
         status.style.animation = 'none';
     }
+    
+    const switchBtn = document.getElementById('switchCameraBtn');
+    if (switchBtn) {
+        switchBtn.style.display = 'none';
+        switchBtn.textContent = '🔄';
+    }
+    
+    listarCameras();
+}
+
+function ativarScanner() {
+    const video = document.getElementById('scannerVideo');
+    const placeholder = document.getElementById('scannerPlaceholder');
+    const status = document.getElementById('scannerStatus');
+    const switchBtn = document.getElementById('switchCameraBtn');
+    
+    if (!video) return;
+    
+    if (cameras.length === 0) {
+        listarCameras();
+        setTimeout(() => {
+            if (cameras.length === 0) {
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <span>❌</span>
+                        <p>Nenhuma câmera encontrada</p>
+                        <p style="font-size:12px;color:#6B7280;">Conecte uma câmera e tente novamente</p>
+                    `;
+                }
+                return;
+            }
+            ativarCameraEspecifica(currentCameraIndex);
+        }, 500);
+        return;
+    }
+    
+    if (switchBtn && cameras.length > 1) {
+        switchBtn.style.display = 'flex';
+        switchBtn.textContent = '🔄';
+        const newSwitchBtn = switchBtn.cloneNode(true);
+        switchBtn.parentNode.replaceChild(newSwitchBtn, switchBtn);
+        newSwitchBtn.addEventListener('click', switchCamera);
+    }
+    
+    ativarCameraEspecifica(currentCameraIndex);
 }
 
 function closeScannerModal() {
@@ -321,89 +513,6 @@ function closeScannerModal() {
     document.body.style.overflow = 'auto';
 }
 
-function ativarScanner() {
-    const video = document.getElementById('scannerVideo');
-    const placeholder = document.getElementById('scannerPlaceholder');
-    const status = document.getElementById('scannerStatus');
-    
-    if (!video) return;
-    
-    if (placeholder) {
-        placeholder.innerHTML = `
-            <div class="scanner-loading">
-                <span>⏳</span>
-                <p>Acessando câmera...</p>
-                <div class="spinner"></div>
-            </div>
-        `;
-    }
-    
-    if (status) {
-        status.textContent = 'Acessando câmera...';
-        status.style.color = '#F59E0B';
-    }
-    
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Seu navegador não suporta acesso à câmera.');
-        if (placeholder) {
-            placeholder.innerHTML = `
-                <span>❌</span>
-                <p>Navegador sem suporte à câmera</p>
-                <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
-            `;
-        }
-        return;
-    }
-    
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            scannerStream = stream;
-            video.srcObject = stream;
-            video.style.display = 'block';
-            if (placeholder) placeholder.style.display = 'none';
-            scannerAtivo = true;
-            
-            if (status) {
-                status.textContent = 'Aproxime o código';
-                status.style.color = '#22c55e';
-                status.style.animation = 'scannerPulse 1.5s ease-in-out infinite';
-            }
-            
-            scannerTimeout = setTimeout(() => {
-                if (scannerAtivo) {
-                    const codigoTeste = '7891234567890';
-                    buscarProdutoPorCodigo(codigoTeste);
-                }
-            }, 5000);
-        })
-        .catch(err => {
-            console.error('Erro na câmera:', err);
-            
-            let mensagem = '';
-            if (err.name === 'NotAllowedError') {
-                mensagem = 'Permissão negada. Permita o acesso à câmera.';
-            } else if (err.name === 'NotFoundError') {
-                mensagem = 'Nenhuma câmera encontrada.';
-            } else {
-                mensagem = err.message || 'Erro ao acessar a câmera.';
-            }
-            
-            if (placeholder) {
-                placeholder.innerHTML = `
-                    <span>❌</span>
-                    <p>${mensagem}</p>
-                    <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
-                `;
-            }
-            
-            if (status) {
-                status.textContent = 'Erro na câmera';
-                status.style.color = '#EF4444';
-                status.style.animation = 'none';
-            }
-        });
-}
-
 function buscarProdutoPorCodigo(codigo) {
     if (!codigo || codigo.trim() === '') {
         alert('Digite um código de barras válido');
@@ -424,7 +533,6 @@ function buscarProdutoPorCodigo(codigo) {
             
             setTimeout(() => {
                 closeScannerModal();
-                // Preencher o campo de código no formulário se estiver aberto
                 const codigoInput = document.getElementById('produtoCodigo');
                 if (codigoInput) codigoInput.value = produto.codigo;
                 alert(`Produto encontrado: ${produto.nome}`);
