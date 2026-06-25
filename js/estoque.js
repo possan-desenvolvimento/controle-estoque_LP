@@ -59,7 +59,7 @@ let produtosFiltrados = [...produtos];
 let scannerAtivo = false;
 let scannerStream = null;
 let scannerTimeout = null;
-let cameraFacing = 'environment';
+let cameraFacing = 'environment'; // ALTERADO: agora começa com 'environment' (traseira)
 let cameras = [];
 let currentCameraIndex = 0;
 
@@ -289,23 +289,29 @@ function listarCameras() {
             
             console.log(`📷 ${cameras.length} câmera(s) encontrada(s)`);
             
+            // Tenta encontrar a câmera traseira primeiro
             const hasEnvironment = cameras.some(c => 
                 c.label.toLowerCase().includes('back') || 
                 c.label.toLowerCase().includes('traseira') ||
-                c.label.toLowerCase().includes('environment')
+                c.label.toLowerCase().includes('environment') ||
+                c.label.toLowerCase().includes('câmera traseira')
             );
             
             if (hasEnvironment) {
                 const envIndex = cameras.findIndex(c => 
                     c.label.toLowerCase().includes('back') || 
                     c.label.toLowerCase().includes('traseira') ||
-                    c.label.toLowerCase().includes('environment')
+                    c.label.toLowerCase().includes('environment') ||
+                    c.label.toLowerCase().includes('câmera traseira')
                 );
                 currentCameraIndex = envIndex >= 0 ? envIndex : 0;
                 cameraFacing = 'environment';
+                console.log('📸 Câmera traseira selecionada');
             } else {
+                // Se não encontrar traseira, usa a primeira disponível
                 currentCameraIndex = 0;
-                cameraFacing = 'user';
+                cameraFacing = 'environment'; // Mantém environment como fallback
+                console.log('📸 Nenhuma câmera traseira encontrada, usando a primeira disponível');
             }
         })
         .catch(err => {
@@ -330,6 +336,16 @@ function switchCamera() {
     
     currentCameraIndex = (currentCameraIndex + 1) % cameras.length;
     
+    // Atualiza o facingMode baseado no índice
+    const cameraLabel = cameras[currentCameraIndex]?.label || '';
+    if (cameraLabel.toLowerCase().includes('back') || 
+        cameraLabel.toLowerCase().includes('traseira') ||
+        cameraLabel.toLowerCase().includes('environment')) {
+        cameraFacing = 'environment';
+    } else {
+        cameraFacing = 'user';
+    }
+    
     if (switchBtn) {
         switchBtn.style.transform = 'rotate(180deg)';
         setTimeout(() => {
@@ -337,7 +353,7 @@ function switchCamera() {
         }, 300);
     }
     
-    console.log(`🔄 Alternando para câmera ${currentCameraIndex + 1}/${cameras.length}`);
+    console.log(`🔄 Alternando para câmera ${currentCameraIndex + 1}/${cameras.length} (${cameraFacing})`);
     
     if (scannerAtivo && scannerStream) {
         scannerStream.getTracks().forEach(track => track.stop());
@@ -393,12 +409,21 @@ function ativarCameraEspecifica(cameraIndex) {
         return;
     }
     
+    // Construir constraints com facingMode explícito
     const constraints = {
         video: {
-            deviceId: cameras[cameraIndex]?.deviceId ? { exact: cameras[cameraIndex].deviceId } : undefined,
-            facingMode: cameraFacing
+            facingMode: cameraFacing, // Usa environment (traseira) por padrão
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
         }
     };
+    
+    // Se tiver deviceId específico, usa ele
+    if (cameras[cameraIndex]?.deviceId) {
+        constraints.video.deviceId = { exact: cameras[cameraIndex].deviceId };
+    }
+    
+    console.log('📷 Iniciando câmera com:', constraints);
     
     navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
@@ -416,12 +441,7 @@ function ativarCameraEspecifica(cameraIndex) {
             
             if (scannerTimeout) clearTimeout(scannerTimeout);
             
-            scannerTimeout = setTimeout(() => {
-                if (scannerAtivo) {
-                    const codigoTeste = '7891234567890';
-                    buscarProdutoPorCodigo(codigoTeste);
-                }
-            }, 5000);
+            // Removido o timeout de demonstração para não ficar buscando produto automaticamente
         })
         .catch(err => {
             console.error('Erro ao acessar câmera:', err);
@@ -431,25 +451,50 @@ function ativarCameraEspecifica(cameraIndex) {
                 mensagem = 'Permissão negada. Permita o acesso à câmera.';
             } else if (err.name === 'NotFoundError') {
                 mensagem = 'Câmera não encontrada. Tente outra.';
+            } else if (err.name === 'OverconstrainedError') {
+                mensagem = 'Não foi possível usar a câmera traseira. Tentando com a câmera padrão...';
+                // Tenta novamente sem facingMode
+                console.log('Tentando sem facingMode...');
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        scannerStream = stream;
+                        video.srcObject = stream;
+                        video.style.display = 'block';
+                        if (placeholder) placeholder.style.display = 'none';
+                        scannerAtivo = true;
+                        if (status) {
+                            status.textContent = 'Câmera padrão ativada';
+                            status.style.color = '#22c55e';
+                        }
+                    })
+                    .catch(err2 => {
+                        mensagem = 'Erro ao acessar qualquer câmera. Verifique as permissões.';
+                        showCameraError(mensagem, placeholder, status);
+                    });
+                return;
             } else {
                 mensagem = err.message || 'Erro ao acessar a câmera.';
             }
             
-            if (placeholder) {
-                placeholder.innerHTML = `
-                    <span>❌</span>
-                    <p>${mensagem}</p>
-                    <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
-                    <button class="btn-primary" onclick="ativarScanner()" style="margin-top:12px;">Tentar novamente</button>
-                `;
-            }
-            
-            if (status) {
-                status.textContent = 'Erro na câmera';
-                status.style.color = '#EF4444';
-                status.style.animation = 'none';
-            }
+            showCameraError(mensagem, placeholder, status);
         });
+}
+
+function showCameraError(mensagem, placeholder, status) {
+    if (placeholder) {
+        placeholder.innerHTML = `
+            <span>❌</span>
+            <p>${mensagem}</p>
+            <p style="font-size:12px;color:#6B7280;">Use o campo manual abaixo</p>
+            <button class="btn-primary" onclick="ativarScanner()" style="margin-top:12px;">Tentar novamente</button>
+        `;
+    }
+    
+    if (status) {
+        status.textContent = 'Erro na câmera';
+        status.style.color = '#EF4444';
+        status.style.animation = 'none';
+    }
 }
 
 function openScannerModal() {
@@ -738,4 +783,23 @@ function confirmarVendaKilo() {
 
 function closeVendaKiloModal() {
     document.getElementById('ajustarEstoqueModal').style.display = 'none';
+}
+
+// ============================================
+// FUNÇÕES AUXILIARES
+// ============================================
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+}
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+function initPage() {
+    // Função placeholder para compatibilidade
 }
